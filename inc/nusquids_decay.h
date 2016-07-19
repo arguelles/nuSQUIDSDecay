@@ -4,21 +4,24 @@
 #include <vector>
 #include <iostream>
 #include <nuSQuIDS/nuSQuIDS.h>
+#include "exCross.h"
 
 
 namespace nusquids {
 
 class nuSQUIDSDecay: public nuSQUIDS {
   private:
+    bool iincoherent_int = false;
     bool decay_parameters_set = false;
     squids::Const decay_parameters;
     std::vector<double> decay_strength;
     squids::SU_vector DT;
     std::vector<squids::SU_vector> DT_evol;
+
   protected:
     void AddToPreDerive(double x) {
-      if(!lv_parameters_set)
-        throw std::runtime_error("LV parameters not set");
+      if(!decay_parameters_set)
+        throw std::runtime_error("decay parameters not set");
       for(int ei = 0; ei < ne; ei++){
         // asumming same mass hamiltonian for neutrinos/antineutrinos
         squids::SU_vector h0 = H0(E_range[ei],0);
@@ -62,12 +65,12 @@ class nuSQUIDSDecay: public nuSQUIDS {
         double th_value;
         std::string th_label = "th"+std::to_string(i+1)+std::to_string(j+1);
         H5LTget_attribute_double(hdf5_loc_id,"mixing_angles", th_label.c_str(), &th_value);
-        decay_parameters.Set_MixingAngle(i,j,th_value);
+        decay_parameters.SetMixingAngle(i,j,th_value);
 
         double delta_value;
         std::string delta_label = "delta"+std::to_string(i+1)+std::to_string(j+1);
         H5LTget_attribute_double(hdf5_loc_id,"CP_phases", delta_label.c_str(), &delta_value);
-        decay_parameters.Set_CPPhase(i,j,delta_value);
+        decay_parameters.SetPhase(i,j,delta_value);
         }
       }
 
@@ -81,15 +84,26 @@ class nuSQUIDSDecay: public nuSQUIDS {
       Set_Decay_Matrix(decay_parameters,decay_strength);
     }
 
-    squids:: SU_vector GammaRho(unsigned int ie,unsigned int irho) const {
-      return nuSQUIDS::GammaRho(ie,irho) + DT_evol[ie];
+    squids::SU_vector GammaRho(unsigned int ie,unsigned int irho) const {
+      if(iincoherent_int)
+        return nuSQUIDS::GammaRho(ie,irho) + DT_evol[ie];
+      else
+        return DT_evol[ie];
+    }
+
+    squids::SU_vector InteractionsRho(unsigned int ie, unsigned int irho) const {
+      squids::SU_vector decay_regeneration(numneu);
+      if(iincoherent_int)
+        return nuSQUIDS::GammaRho(ie,irho) + decay_regeneration;
+      else
+        return decay_regeneration;
     }
 
   public:
     nuSQUIDSDecay() {};
-    nuSQUIDSDecay(double Emin_,double Emax_,int Esize_,int numneu_,NeutrinoType NT_,
-         bool elogscale_,bool iinteraction_):
-          nuSQUIDS(Emin_,Emax_,Esize_,numneu_,NT_,elogscale_,iinteraction_)
+    nuSQUIDSDecay(marray<double,1> e_nodes,
+                  unsigned int numneu_ = 3,NeutrinoType NT_ = NeutrinoType::both,bool iinteraction_ = true):
+      nuSQUIDS(e_nodes,numneu_,NT_,iinteraction_,std::make_shared<nusquids::NeutrinoDISCrossSectionsFromTablesExtended>())
     {
       // just allocate some matrices
        DT_evol.resize(ne);
@@ -99,16 +113,21 @@ class nuSQUIDSDecay: public nuSQUIDS {
     }
 
     void Set_Decay_Matrix(squids::Const & decay_parameters,std::vector<double> decay_strength){
+      std::cout << decay_strength.size() << " " << numneu << std::endl;
       if(decay_strength.size() != numneu){
         throw std::runtime_error("Mismatch size while constructing decay matrix.");
       }
       DT = squids::SU_vector(numneu);
       for(size_t i=0; i<numneu; i++){
-       DT += decay_strength[i]*squids::Projector(numneu,i);
+       DT += decay_strength[i]*squids::SU_vector::Projector(numneu,i);
       }
       // rotate from decay basis to mass basis
       DT.RotateToB1(decay_parameters);
       decay_parameters_set = true;
+    }
+
+    void Set_IncoherentInteractions(bool opt){
+      iincoherent_int = opt;
     }
 };
 
