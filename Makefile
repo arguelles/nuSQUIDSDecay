@@ -1,6 +1,7 @@
 # FLAGS
 
-CFLAGS= -O3 -fPIC -std=c++11 -g
+CFLAGS= -O3 -fPIC -std=c++11
+#CFLAGS+= -g -fsanitize=address
 CFLAGS+= -I./inc `pkg-config --cflags nusquids`
 LDFLAGS+= `pkg-config --libs nusquids`
 

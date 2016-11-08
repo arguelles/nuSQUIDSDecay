@@ -15,16 +15,22 @@ int main(int argc, char* argv[])
   const unsigned int e = 0;
   const unsigned int mu = 1;
   const unsigned int tau = 2;
-  const unsigned int numneu = 4;
+  const unsigned int numneu = 3;
 
-  nusquids::marray<double,1> e_nodes = logspace(1.0e0*units.GeV,1.0e4*units.GeV,100);
+  nusquids::marray<double,1> e_nodes = logspace(1.0e0*units.GeV,1.0e4*units.GeV,200);
 
   nuSQUIDSDecay nusqdec(e_nodes,numneu);
 
-  std::shared_ptr<Vacuum> vacuum = std::make_shared<Vacuum>();
-  std::shared_ptr<Vacuum::Track> vacuum_track = std::make_shared<Vacuum::Track>(12000.*units.km);
-  nusqdec.Set_Body(vacuum);
-  nusqdec.Set_Track(vacuum_track);
+  nusqdec.Set_MixingParametersToDefault();
+
+  std::shared_ptr<EarthAtm> body = std::make_shared<EarthAtm>();
+  std::shared_ptr<EarthAtm::Track> track = std::make_shared<EarthAtm::Track>(acos(-1.));
+
+  //std::shared_ptr<Vacuum> body = std::make_shared<Vacuum>();
+  //std::shared_ptr<Vacuum::Track> track = std::make_shared<Vacuum::Track>(12000.*units.km);
+
+  nusqdec.Set_Body(body);
+  nusqdec.Set_Track(track);
 
   marray<double,3> neutrino_state({e_nodes.size(),2,nusqdec.GetNumNeu()});
   std::fill(neutrino_state.begin(),neutrino_state.end(),0);
@@ -33,8 +39,8 @@ int main(int argc, char* argv[])
   for(size_t ie=0; ie<neutrino_state.extent(0); ie++){
     for(size_t ir=0; ir<neutrino_state.extent(1); ir++){
       for(size_t iflv=0; iflv<neutrino_state.extent(2); iflv++){
-        neutrino_state[ie][ie][iflv] = (iflv == mu) ? 1.: 0;
-        neutrino_state[ie][ie][iflv] = (iflv == mu) ? 1.: 0;
+        neutrino_state[ie][ir][iflv] = (iflv == mu) ? 1.: 0;
+        neutrino_state[ie][ir][iflv] = (iflv == mu) ? 1.: 0;
       }
     }
   }
@@ -44,16 +50,20 @@ int main(int argc, char* argv[])
   nusqdec.Set_IncoherentInteractions(false);
 
   squids::Const decay_angles;
-  std::vector<double> decay_strength {0.,0.,0.,0.};
+  std::vector<double> decay_strength(numneu);
+  std::fill(decay_strength.begin(),decay_strength.end(),0.);
+
+  decay_strength[1] = 1.0e-14;
+
   nusqdec.Set_Decay_Matrix(decay_angles,decay_strength);
 
   nusqdec.EvolveState();
 
   for(size_t ie=0; ie<e_nodes.size(); ie++){
     std::cout << e_nodes[ie]/units.GeV << " ";
-    std::cout << nusqdec.EvalFlavorAtNode(e,ie,0) << " " << nusqdec.EvalFlavorAtNode(e,ie,1) << " ";
-    std::cout << nusqdec.EvalFlavorAtNode(mu,ie,0) << " " << nusqdec.EvalFlavorAtNode(mu,ie,1) << " ";
-    std::cout << nusqdec.EvalFlavorAtNode(tau,ie,0) << " " << nusqdec.EvalFlavorAtNode(tau,ie,1) << " ";
+    for(size_t flv=0; flv< numneu; flv++){
+      std::cout << nusqdec.EvalFlavorAtNode(flv,ie,0) << " " << nusqdec.EvalFlavorAtNode(flv,ie,1) << " ";
+    }
     std::cout << std::endl;
   }
 

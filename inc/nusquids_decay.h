@@ -86,13 +86,16 @@ class nuSQUIDSDecay: public nuSQUIDS {
 
     squids::SU_vector GammaRho(unsigned int ie,unsigned int irho) const {
       if(iincoherent_int)
-        return nuSQUIDS::GammaRho(ie,irho) + DT_evol[ie];
+        return nuSQUIDS::GammaRho(ie,irho) + DT_evol[ie]*(1./E_range[ie]);
       else
         return DT_evol[ie];
     }
 
     squids::SU_vector InteractionsRho(unsigned int ie, unsigned int irho) const {
       squids::SU_vector decay_regeneration(numneu);
+      // here one needs to fill in the extra decay regeneration terms
+
+      //  do not modify after this line
       if(iincoherent_int)
         return nuSQUIDS::GammaRho(ie,irho) + decay_regeneration;
       else
@@ -113,7 +116,6 @@ class nuSQUIDSDecay: public nuSQUIDS {
     }
 
     void Set_Decay_Matrix(squids::Const & decay_parameters,std::vector<double> decay_strength){
-      std::cout << decay_strength.size() << " " << numneu << std::endl;
       if(decay_strength.size() != numneu){
         throw std::runtime_error("Mismatch size while constructing decay matrix.");
       }
