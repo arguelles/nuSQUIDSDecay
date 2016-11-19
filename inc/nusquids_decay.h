@@ -127,7 +127,7 @@ class nuSQUIDSDecay: public nuSQUIDS {
 			unsigned int i,j;
 			for(i=0; i<numneu; i++)
 			{
-				for(j=i+1; i<numneu; j++)
+				for(j=i+1; j<numneu; j++)
 				{
 					my_pstar = pstar(i,j);	
 					E0 = Ef*m_nu[i]/my_pstar;
