@@ -39,25 +39,44 @@ int main(int argc, char* argv[])
   for(size_t ie=0; ie<neutrino_state.extent(0); ie++){
     for(size_t ir=0; ir<neutrino_state.extent(1); ir++){
       for(size_t iflv=0; iflv<neutrino_state.extent(2); iflv++){
+
         neutrino_state[ie][ir][iflv] = (iflv == mu) ? 1.: 0;
-        neutrino_state[ie][ir][iflv] = (iflv == mu) ? 1.: 0;
+		//Dummy spectrum w/ soft tail.
+		neutrino_state[ie][ir][iflv]*= (1.0/e_nodes[ie]);
+        //neutrino_state[ie][ir][iflv] = (iflv == mu) ? 1.: 0;
       }
     }
   }
 
+
+	
+  nusqdec.Set_m_phi(1.0e-4);
+  nusqdec.Set_m_nu(1.0e-3, 2);
+  nusqdec.Set_m_nu(1.0e-2, 1);
+  nusqdec.Set_m_nu(1.0e-1, 0);
+//  nusqdec.Set_m_nu(1.0, 3);
+
   nusqdec.Set_initial_state(neutrino_state,flavor);
   //nusqdec.Set_ProgressBar(true);
-  nusqdec.Set_IncoherentInteractions(false);
+  //nusqdec.Set_IncoherentInteractions(false);
+  nusqdec.Set_IncoherentInteractions(true);
 
   squids::Const decay_angles;
   std::vector<double> decay_strength(numneu);
   std::fill(decay_strength.begin(),decay_strength.end(),0.);
 
+  decay_angles.SetMixingAngle(0,2,3.1415/4.0);
+  decay_angles.SetMixingAngle(1,2,3.1415/4.0);
+  decay_angles.SetMixingAngle(0,1,3.1415/4.0);
+
   decay_strength[1] = 1.0e-14;
 
   nusqdec.Set_Decay_Matrix(decay_angles,decay_strength);
 
+	std::cout << "About to Evolve!" << std::endl;
+
   nusqdec.EvolveState();
+	std::cout << "Finished Evolution" << std::endl;
 
   for(size_t ie=0; ie<e_nodes.size(); ie++){
     std::cout << e_nodes[ie]/units.GeV << " ";

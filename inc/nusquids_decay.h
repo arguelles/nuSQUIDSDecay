@@ -18,7 +18,32 @@ class nuSQUIDSDecay: public nuSQUIDS {
     squids::SU_vector DT;
     std::vector<squids::SU_vector> DT_evol;
 
+	std::vector<double> m_nu;
+	double m_phi;
+
+	
+	double pstar(unsigned int i, unsigned int j) const {
+		return (1.0/(2.0*m_nu[i]))*sqrt((pow(m_nu[i],2)-pow(m_nu[j]+m_phi,2))
+			*(pow(m_nu[i],2)-pow(m_nu[j]-m_phi,2)));	
+	}
+
+
+	unsigned int nearest_element(double value) const {
+
+		std::vector<double> diffs(E_range.size());
+	  	unsigned int i=0;
+	  	for (i=0; i<E_range.size(); i++)
+		{
+				diffs[i] = fabs(value-E_range[i]);
+		}
+	
+	  	return std::distance(diffs.begin(), std::min_element(diffs.begin(),diffs.end()));
+	}
+
+
   protected:
+
+
     void AddToPreDerive(double x) {
       if(!decay_parameters_set)
         throw std::runtime_error("decay parameters not set");
@@ -88,12 +113,50 @@ class nuSQUIDSDecay: public nuSQUIDS {
       if(iincoherent_int)
         return nuSQUIDS::GammaRho(ie,irho) + DT_evol[ie]*(1./E_range[ie]);
       else
-        return DT_evol[ie];
+        return DT_evol[ie]*(1./E_range[ie]);
     }
 
     squids::SU_vector InteractionsRho(unsigned int ie, unsigned int irho) const {
       squids::SU_vector decay_regeneration(numneu);
       // here one needs to fill in the extra decay regeneration terms
+			double E0;			
+			double E0_index;
+			double Ef = E_range[ie];
+			double my_pstar;
+
+			unsigned int i,j;
+			for(i=0; i<numneu; i++)
+			{
+				for(j=i+1; i<numneu; j++)
+				{
+					my_pstar = pstar(i,j);	
+					E0 = Ef*m_nu[i]/my_pstar;
+					E0_index = nearest_element(E0); 
+					decay_regeneration+=(state[E0_index].rho[irho]*evol_b0_proj[irho][i][E0_index])*(((DT_evol[ie])[j+numneu*i])/Ef)*evol_b0_proj[irho][j][ie];
+					printmat(DT_evol[ie],numneu,"DTEVOL");
+					printmat(evol_b0_proj[irho][i][E0_index],numneu,"MASSPROJ");
+					printmat(state[E0_index].rho[irho],numneu,"RHOMATRIX");
+					printmat(evol_b0_proj[irho][i][E0_index],numneu,"MASSPROJ:I");
+					printmat(evol_b0_proj[irho][j][E0_index],numneu,"MASSPROJ:J");
+					printmat(decay_regeneration,numneu,"DCY_REGEN");
+					unsigned int k;
+					for(k=0; k<numneu; k++)
+					{
+						std::cout << k << " " << m_nu[k] << " ";
+					}
+					std::cout << std::endl;
+					std::cout << "i,j: " << "(" << i << " , " << j << ")"  << std::endl;
+					std::cout << "PHIMASS : " <<m_phi <<std::endl;
+					std::cout << "E0 : " << E0 << std::endl;
+					std::cout << "E0closest : " << E_range[E0_index] << std::endl;
+					std::cout << "E0closestp1 : " << E_range[E0_index+1] << std::endl;
+					std::cout << "E0closestm1 : " << E_range[E0_index-1] << std::endl;
+					std::cout << "Ef : " << E_range[ie] << std::endl;
+					std::cout << "Pstar : " << pstar(i,j) << std::endl;
+				}
+			}
+
+
 
       //  do not modify after this line
       if(iincoherent_int)
@@ -109,10 +172,14 @@ class nuSQUIDSDecay: public nuSQUIDS {
       nuSQUIDS(e_nodes,numneu_,NT_,iinteraction_,std::make_shared<nusquids::NeutrinoDISCrossSectionsFromTablesExtended>())
     {
       // just allocate some matrices
-       DT_evol.resize(ne);
-       for(int ei = 0; ei < ne; ei++){
-         DT_evol[ei] = squids::SU_vector(nsun);
-       }
+			DT_evol.resize(ne);
+			for(int ei = 0; ei < ne; ei++){
+				DT_evol[ei] = squids::SU_vector(nsun);
+			}
+		
+			// allocating space for neutrino masses	
+			m_nu.resize(numneu);	
+
     }
 
     void Set_Decay_Matrix(squids::Const & decay_parameters,std::vector<double> decay_strength){
@@ -131,6 +198,41 @@ class nuSQUIDSDecay: public nuSQUIDS {
     void Set_IncoherentInteractions(bool opt){
       iincoherent_int = opt;
     }
+
+	void Set_m_nu(double mass, unsigned int state)
+	{
+		m_nu[state]=mass;
+	}
+
+	void Set_m_phi(double mass)
+	{
+		m_phi=mass;
+	}
+
+
+	
+
+	void printmat(const squids::SU_vector mat, unsigned int dim, std::string mname) const
+	{
+		std::cout << std::endl;
+		std::cout << "Matrix: " << mname << std::endl;
+
+		unsigned int i,j;
+	
+		for(i=0; i<dim; i++)
+		{
+			for(j=0; j<dim; j++)
+			{
+				std::cout << (mat)[j+dim*i] << " ";
+			}
+			std::cout << std::endl;
+		}
+		std::cout << std::endl;
+		std::cout << std::endl;
+	}
+
+
+
 };
 
 } // close nusquids namespace
