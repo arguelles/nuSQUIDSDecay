@@ -10,7 +10,7 @@ all: mains/exCross.o mains/run_decay
 mains/exCross.o : inc/exCross.h mains/exCross.cpp
 	@ $(CXX) $(CFLAGS) -c mains/exCross.cpp -o $@
 
-mains/run_decay : mains/run_decay.cpp mains/exCross.o
+mains/run_decay : mains/run_decay.cpp mains/exCross.o inc/nusquids_decay.h
 	@echo Compiling run_decay
 	@ $(CXX) $(CFLAGS) mains/run_decay.cpp mains/exCross.o  -o $@ $(LDFLAGS)
 

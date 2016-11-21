@@ -23,8 +23,9 @@ class nuSQUIDSDecay: public nuSQUIDS {
 
 	
 	double pstar(unsigned int i, unsigned int j) const {
-		return (1.0/(2.0*m_nu[i]))*sqrt((pow(m_nu[i],2)-pow(m_nu[j]+m_phi,2))
+		double retval = (1.0/(2.0*m_nu[i]))*sqrt((pow(m_nu[i],2)-pow(m_nu[j]+m_phi,2))
 			*(pow(m_nu[i],2)-pow(m_nu[j]-m_phi,2)));	
+		return retval;
 	}
 
 
@@ -39,6 +40,29 @@ class nuSQUIDSDecay: public nuSQUIDS {
 	
 	  	return std::distance(diffs.begin(), std::min_element(diffs.begin(),diffs.end()));
 	}
+
+
+
+	double traceprod(const squids::SU_vector m1, const squids::SU_vector m2, unsigned int dim) const
+	{
+
+		double trprod=0;
+
+		unsigned int i,j;
+	
+		for(i=0; i<dim; i++)
+		{
+			for(j=0; j<dim; j++)
+			{
+				trprod+= ((m1)[j+dim*i])*((m2)[i+dim*j]);
+			}
+		}
+		
+		return trprod;
+	}
+	
+
+
 
 
   protected:
@@ -124,6 +148,7 @@ class nuSQUIDSDecay: public nuSQUIDS {
 			double Ef = E_range[ie];
 			double my_pstar;
 
+			printmat(decay_regeneration,numneu,"DCY_REGEN");
 			unsigned int i,j;
 			for(i=0; i<numneu; i++)
 			{
@@ -132,13 +157,63 @@ class nuSQUIDSDecay: public nuSQUIDS {
 					my_pstar = pstar(i,j);	
 					E0 = Ef*m_nu[i]/my_pstar;
 					E0_index = nearest_element(E0); 
-					decay_regeneration+=(state[E0_index].rho[irho]*evol_b0_proj[irho][i][E0_index])*(((DT_evol[ie])[j+numneu*i])/Ef)*evol_b0_proj[irho][j][ie];
-					printmat(DT_evol[ie],numneu,"DTEVOL");
-					printmat(evol_b0_proj[irho][i][E0_index],numneu,"MASSPROJ");
-					printmat(state[E0_index].rho[irho],numneu,"RHOMATRIX");
-					printmat(evol_b0_proj[irho][i][E0_index],numneu,"MASSPROJ:I");
-					printmat(evol_b0_proj[irho][j][E0_index],numneu,"MASSPROJ:J");
-					printmat(decay_regeneration,numneu,"DCY_REGEN");
+					//decay_regeneration+=(state[E0_index].rho[irho]*evol_b0_proj[irho][i][E0_index])*(((DT_evol[ie])[j+numneu*i])/Ef)*evol_b0_proj[irho][j][ie];
+					//Altered to use traceprod funtion which manually implements 
+					//the trace of a matrix product.
+					decay_regeneration+=traceprod(state[E0_index].rho[irho],evol_b0_proj[irho][i][E0_index],numneu)*(((DT_evol[ie])[j+numneu*i])/Ef)*evol_b0_proj[irho][j][ie];
+			
+					//Diagnostics.
+					std::cout << "DTEVOLEL: " << (DT_evol[ie])[j+numneu*i] << std::endl;
+					std::cout << "TRACE: " << ((state[E0_index].rho[irho])*(evol_b0_proj[irho][i][E0_index])) << std::endl;
+					std::cout << "REMAINDER: " << (((DT_evol[ie])[j+numneu*i])/Ef) << std::endl;
+
+					std::cout << "VECSIZE: " << (state[E0_index].rho[irho]).Size() << std::endl;
+
+
+					//---------Testing trace functionality---------//
+						
+					squids::SU_vector A(3);
+					squids::SU_vector B(3);
+					
+
+					std::vector<double> avec = {1,2,3,4,5,6,7,8,9};
+					std::vector<double> bvec = {2,3,4,5,6,7,8,9,10};
+
+
+					unsigned int m;
+					for (m=0; m<avec.size(); m++)
+					{
+						A[m]=avec[m];	
+						B[m]=bvec[m];	
+					}
+
+					std::cout << "TRACE A.B: " << A*B << std::endl;
+					std::cout << "TRACE A.B (TRPROD): " << traceprod(A,B,3) << std::endl;
+	
+					//---------Testing trace functionality---------//
+
+					std::vector<double> rhocomps = (state[E0_index].rho[irho]).GetComponents();
+
+					std::cout << "rhocomps: " << std::endl;
+					unsigned int l;
+					for (l=0; l<rhocomps.size(); l++)
+					{
+						std::cout << rhocomps[l] << " ";
+					}
+					std::cout << std::endl;
+
+
+
+					std::vector<double> projcomps = (evol_b0_proj[irho][i][E0_index]).GetComponents();
+
+					std::cout << "projcomps: " << std::endl;
+					for (l=0; l<projcomps.size(); l++)
+					{
+						std::cout << projcomps[l] << " ";
+					}
+					std::cout << std::endl;
+
+
 					unsigned int k;
 					for(k=0; k<numneu; k++)
 					{
@@ -153,6 +228,11 @@ class nuSQUIDSDecay: public nuSQUIDS {
 					std::cout << "E0closestm1 : " << E_range[E0_index-1] << std::endl;
 					std::cout << "Ef : " << E_range[ie] << std::endl;
 					std::cout << "Pstar : " << pstar(i,j) << std::endl;
+					printmat(DT_evol[ie],numneu,"DTEVOL");
+					printmat(state[E0_index].rho[irho],numneu,"RHOMATRIX");
+					printmat(evol_b0_proj[irho][i][E0_index],numneu,"MASSPROJ:I");
+					printmat(evol_b0_proj[irho][j][E0_index],numneu,"MASSPROJ:J");
+					printmat(decay_regeneration,numneu,"DCY_REGEN");
 				}
 			}
 
@@ -214,7 +294,6 @@ class nuSQUIDSDecay: public nuSQUIDS {
 
 	void printmat(const squids::SU_vector mat, unsigned int dim, std::string mname) const
 	{
-		std::cout << std::endl;
 		std::cout << "Matrix: " << mname << std::endl;
 
 		unsigned int i,j;
@@ -227,7 +306,6 @@ class nuSQUIDSDecay: public nuSQUIDS {
 			}
 			std::cout << std::endl;
 		}
-		std::cout << std::endl;
 		std::cout << std::endl;
 	}
 
