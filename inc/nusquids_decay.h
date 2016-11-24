@@ -23,6 +23,9 @@ class nuSQUIDSDecay: public nuSQUIDS {
 
 	
 	double pstar(unsigned int i, unsigned int j) const {
+    if (m_nu[i] < m_nu[j] + m_phi){
+      throw std::runtime_error("non physical case");
+    }
 		double retval = (1.0/(2.0*m_nu[i]))*sqrt((pow(m_nu[i],2)-pow(m_nu[j]+m_phi,2))
 			*(pow(m_nu[i],2)-pow(m_nu[j]-m_phi,2)));	
 		return retval;
