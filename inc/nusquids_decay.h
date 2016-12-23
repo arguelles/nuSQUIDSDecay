@@ -22,6 +22,9 @@ private:
 
   double pstar(unsigned int i, unsigned int j) const {
     if (m_nu[i] < m_nu[j] + m_phi) {
+		std::cout << "I,J: " << i << " " << j << std::endl;
+		std::cout << "MI,MJ: " << m_nu[i] << " " << m_nu[j] << std::endl;
+		std::cout << "MPHI: " << m_phi << std::endl;
       throw std::runtime_error("non physical case");
     }
     double retval = (1.0 / (2.0 * m_nu[i])) *
@@ -122,6 +125,9 @@ protected:
   }
 
   squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
+
+	//FIXME FACTORS OF TWO (0.5)
+
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
@@ -143,15 +149,13 @@ protected:
       // j-parent index
       for (size_t j = i + 1; j < numneu; j++) {
         my_pstar = pstar(j,i);
-        E0 = m_nu[j]*(Ef/my_pstar;
+        E0 = m_nu[j]*(Ef/my_pstar);
         E0_index = nearest_element(E0);
         // decay_regeneration+=(state[E0_index].rho[irho]*evol_b0_proj[irho][i][E0_index])*(((DT_evol[ie])[j+numneu*i])/Ef)*evol_b0_proj[irho][j][ie];
-        // Altered to use traceprod funtion which manually implements
-        // the trace of a matrix product.
+		// FIXME i-j transposition
         decay_regeneration +=
-            traceprod(state[E0_index].rho[irho],
-                      evol_b0_proj[irho][i][E0_index], numneu) *
-            (((DT_evol[ie])[j + numneu * i]) / Ef) * evol_b0_proj[irho][j][ie];
+            (state[E0_index].rho[irho]*evol_b0_proj[irho][j][E0_index])*
+            (((DT_evol[ie])[j + numneu * i]) / Ef) * evol_b0_proj[irho][i][ie];
 
         // Diagnostics.
         std::cout << "DTEVOLEL: " << (DT_evol[ie])[j + numneu * i] << std::endl;
@@ -166,22 +170,6 @@ protected:
 
         //---------Testing trace functionality---------//
 
-        squids::SU_vector A(3);
-        squids::SU_vector B(3);
-
-        std::vector<double> avec = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-        std::vector<double> bvec = {2, 3, 4, 5, 6, 7, 8, 9, 10};
-
-        unsigned int m;
-        for (m = 0; m < avec.size(); m++) {
-          A[m] = avec[m];
-          B[m] = bvec[m];
-        }
-
-        std::cout << "TRACE A.B: " << A * B << std::endl;
-        std::cout << "TRACE A.B (TRPROD): " << traceprod(A, B, 3) << std::endl;
-
-        //---------Testing trace functionality---------//
 
         std::vector<double> rhocomps =
             (state[E0_index].rho[irho]).GetComponents();
@@ -215,7 +203,7 @@ protected:
         std::cout << "E0closestp1 : " << E_range[E0_index + 1] << std::endl;
         std::cout << "E0closestm1 : " << E_range[E0_index - 1] << std::endl;
         std::cout << "Ef : " << E_range[ie] << std::endl;
-        std::cout << "Pstar : " << pstar(i, j) << std::endl;
+        //std::cout << "Pstar : " << pstar(i, j) << std::endl;
         printmat(DT_evol[ie], numneu, "DTEVOL");
         printmat(state[E0_index].rho[irho], numneu, "RHOMATRIX");
         printmat(evol_b0_proj[irho][i][E0_index], numneu, "MASSPROJ:I");

@@ -51,9 +51,9 @@ int main(int argc, char* argv[])
 
 	
   nusqdec.Set_m_phi(1.0e-4);
-  nusqdec.Set_m_nu(1.0e-3, 2);
+  nusqdec.Set_m_nu(1.0e-3, 0);
   nusqdec.Set_m_nu(1.0e-2, 1);
-  nusqdec.Set_m_nu(1.0e-1, 0);
+  nusqdec.Set_m_nu(1.0e-1, 2);
 //  nusqdec.Set_m_nu(1.0, 3);
 
   nusqdec.Set_initial_state(neutrino_state,flavor);
