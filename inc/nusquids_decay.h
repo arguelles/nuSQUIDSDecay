@@ -1,4 +1,5 @@
-#ifndef nusquidslv_H #define nusquidslv_H
+#ifndef nusquidslv_H
+#define nusquidslv_H
 
 /*
 Copyright © 2016 Alexander Moss, Marjon Moulai, Carlos Arguelles, and Janet
