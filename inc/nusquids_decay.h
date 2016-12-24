@@ -6,6 +6,13 @@
 #include <nuSQuIDS/nuSQuIDS.h>
 #include "exCross.h"
 
+bool close_enough(double x, double y)
+{
+    double epsilon = std::numeric_limits<double>::epsilon();
+    return (std::abs(x - y) <= epsilon * std::abs(x)
+        && std::abs(x - y) <= epsilon * std::abs(y));
+}
+
 namespace nusquids {
 
 class nuSQUIDSDecay : public nuSQUIDS {
@@ -17,14 +24,16 @@ private:
   squids::SU_vector DT;
   std::vector<squids::SU_vector> DT_evol;
 
+  gsl_matrix* rate_mat;
+
   std::vector<double> m_nu;
   double m_phi;
 
   double pstar(unsigned int i, unsigned int j) const {
     if (m_nu[i] < m_nu[j] + m_phi) {
-		std::cout << "I,J: " << i << " " << j << std::endl;
-		std::cout << "MI,MJ: " << m_nu[i] << " " << m_nu[j] << std::endl;
-		std::cout << "MPHI: " << m_phi << std::endl;
+		//std::cout << "I,J: " << i << " " << j << std::endl;
+		//std::cout << "MI,MJ: " << m_nu[i] << " " << m_nu[j] << std::endl;
+		//std::cout << "MPHI: " << m_phi << std::endl;
       throw std::runtime_error("non physical case");
     }
     double retval = (1.0 / (2.0 * m_nu[i])) *
@@ -121,13 +130,11 @@ protected:
                                &(decay_strength[i]));
     }
 
-    Set_Decay_Matrix(decay_parameters, decay_strength);
+	//FIXME
+    //Set_Decay_Matrix(decay_parameters, decay_strength);
   }
 
   squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
-
-	//FIXME FACTORS OF TWO (0.5)
-
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
@@ -142,6 +149,7 @@ protected:
     double E0;
     size_t E0_index;
     double my_pstar;
+	double gamma;
 
     //printmat(decay_regeneration, numneu, "DCY_REGEN");
     // i-daughter index
@@ -149,28 +157,17 @@ protected:
       // j-parent index
       for (size_t j = i + 1; j < numneu; j++) {
         my_pstar = pstar(j,i);
-        E0 = m_nu[j]*(Ef/my_pstar);
+		gamma = Ef/my_pstar;
+        E0 = m_nu[j]*gamma;
         E0_index = nearest_element(E0);
-        // decay_regeneration+=(state[E0_index].rho[irho]*evol_b0_proj[irho][i][E0_index])*(((DT_evol[ie])[j+numneu*i])/Ef)*evol_b0_proj[irho][j][ie];
-		// FIXME i-j transposition
         decay_regeneration +=
             (state[E0_index].rho[irho]*evol_b0_proj[irho][j][E0_index])*
-            (((DT_evol[ie])[j + numneu * i]) / Ef) * evol_b0_proj[irho][i][ie];
+            (gsl_matrix_get(rate_mat,i,j) / gamma) * evol_b0_proj[irho][i][ie];
 
-        // Diagnostics.
-        std::cout << "DTEVOLEL: " << (DT_evol[ie])[j + numneu * i] << std::endl;
-        std::cout << "TRACE: " << ((state[E0_index].rho[irho]) *
-                                   (evol_b0_proj[irho][i][E0_index]))
-                  << std::endl;
-        std::cout << "REMAINDER: " << (((DT_evol[ie])[j + numneu * i]) / Ef)
-                  << std::endl;
-
-        std::cout << "VECSIZE: " << (state[E0_index].rho[irho]).Size()
-                  << std::endl;
 
         //---------Testing trace functionality---------//
 
-
+		/*
         std::vector<double> rhocomps =
             (state[E0_index].rho[irho]).GetComponents();
 
@@ -209,6 +206,7 @@ protected:
         printmat(evol_b0_proj[irho][i][E0_index], numneu, "MASSPROJ:I");
         printmat(evol_b0_proj[irho][j][E0_index], numneu, "MASSPROJ:J");
         printmat(decay_regeneration, numneu, "DCY_REGEN");
+		*/
       }
     }
 
@@ -235,21 +233,58 @@ public:
 
     // allocating space for neutrino masses
     m_nu.resize(numneu);
+
+
+	// allocating memory for rate matrix
+	rate_mat = gsl_matrix_alloc(numneu,numneu);
+
   }
 
-  void Set_Decay_Matrix(squids::Const &decay_parameters,
-                        std::vector<double> decay_strength) {
-    if (decay_strength.size() != numneu) {
-      throw std::runtime_error(
-          "Mismatch size while constructing decay matrix.");
-    }
+  ~nuSQUIDSDecay()
+  {
+    gsl_matrix_free(rate_mat);	
+  }
+
+  void Set_Decay_Matrix(gsl_matrix* m) 
+  {
+	if (rate_mat->size1 != m->size1)
+	{
+		throw std::runtime_error("size1 mismatch while constructing decay matrix.");
+	}
+
+	if (rate_mat->size2 != m->size2)
+	{
+		throw std::runtime_error("size2 mismatch while constructing decay matrix.");
+	}
+
+	double colsum;
+	for (size_t col=0; col<m->size2; col++)
+	{
+	    colsum=0;
+
+	    for (size_t row=0; row<col; row++)
+	    {
+	        colsum+=gsl_matrix_get(m,row,col);
+	    }
+
+		if (!close_enough(gsl_matrix_get(m,col,col),colsum))
+		{
+			throw std::runtime_error("Off-diagonal decay rates do not sum to diagonal rates.");
+		}
+	}
+
+
+	gsl_matrix_memcpy(rate_mat,m);
     DT = squids::SU_vector(numneu);
-    for (size_t i = 0; i < numneu; i++) {
-      DT += decay_strength[i] * squids::SU_vector::Projector(numneu, i);
+
+	double entry;
+    for (size_t i = 0; i < numneu; i++) 
+	{
+		entry = gsl_matrix_get(rate_mat,i,i);
+    	DT += entry*squids::SU_vector::Projector(numneu, i);
     }
-    // rotate from decay basis to mass basis
-    DT.RotateToB1(decay_parameters);
-    decay_parameters_set = true;
+
+	decay_parameters_set=true;
   }
 
   void Set_IncoherentInteractions(bool opt) { iincoherent_int = opt; }

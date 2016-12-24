@@ -1,6 +1,7 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include <limits>
 #include <nuSQuIDS/nuSQuIDS.h>
 #include <nuSQuIDS/marray.h>
 #include <nuSQuIDS/tools.h>
@@ -15,13 +16,14 @@ int main(int argc, char* argv[])
   const unsigned int e = 0;
   const unsigned int mu = 1;
   const unsigned int tau = 2;
-  const unsigned int numneu = 3;
+  const unsigned int numneu = 4;
 
-  nusquids::marray<double,1> e_nodes = logspace(1.0e0*units.GeV,1.0e4*units.GeV,200);
+  nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e5*units.GeV,100);
 
   nuSQUIDSDecay nusqdec(e_nodes,numneu);
 
-  nusqdec.Set_MixingParametersToDefault();
+
+
 
   std::shared_ptr<EarthAtm> body = std::make_shared<EarthAtm>();
   std::shared_ptr<EarthAtm::Track> track = std::make_shared<EarthAtm::Track>(acos(-1.));
@@ -42,36 +44,83 @@ int main(int argc, char* argv[])
 
         neutrino_state[ie][ir][iflv] = (iflv == mu) ? 1.: 0;
 		//Dummy spectrum w/ soft tail.
-		neutrino_state[ie][ir][iflv]*= (1.0/e_nodes[ie]);
+		//neutrino_state[ie][ir][iflv]*= (1.0/e_nodes[ie]);
         //neutrino_state[ie][ir][iflv] = (iflv == mu) ? 1.: 0;
       }
     }
   }
 
+  double m1 = 1.0e-3;
+  double m2 = 1.0e-2;
+  double m3 = 1.0e-1;
+  double m4 = 1.0;
+  double mphi = 1.0e-4;
 
+  nusqdec.Set_MixingParametersToDefault();
+
+  // mixing angles
+  //nusqdec.Set_MixingAngle(0,1,0.563942);
+  //nusqdec.Set_MixingAngle(0,2,0.154085);
+  //nusqdec.Set_MixingAngle(1,2,0.785398);
+  nusqdec.Set_MixingAngle(0,3,0.785398);
+  nusqdec.Set_MixingAngle(1,3,0.785398);
+  nusqdec.Set_MixingAngle(2,3,0.785398);
+  // square mass differences
+  nusqdec.Set_SquareMassDifference(1,m2*m2 - m1*m1); //dm^2_21
+  nusqdec.Set_SquareMassDifference(2,m3*m3 - m1*m1);  //dm^2_31
+  nusqdec.Set_SquareMassDifference(3,m4*m4 - m1*m1);  //dm^2_41
 	
-  nusqdec.Set_m_phi(1.0e-4);
-  nusqdec.Set_m_nu(1.0e-3, 0);
-  nusqdec.Set_m_nu(1.0e-2, 1);
-  nusqdec.Set_m_nu(1.0e-1, 2);
-//  nusqdec.Set_m_nu(1.0, 3);
+  nusqdec.Set_m_phi(mphi);
+  nusqdec.Set_m_nu(m1, 0);
+  nusqdec.Set_m_nu(m2, 1);
+  nusqdec.Set_m_nu(m3, 2);
+  nusqdec.Set_m_nu(m4, 3);
 
   nusqdec.Set_initial_state(neutrino_state,flavor);
   //nusqdec.Set_ProgressBar(true);
-  //nusqdec.Set_IncoherentInteractions(false);
-  nusqdec.Set_IncoherentInteractions(true);
+  nusqdec.Set_IncoherentInteractions(false);
+  //nusqdec.Set_IncoherentInteractions(true);
 
   squids::Const decay_angles;
   std::vector<double> decay_strength(numneu);
   std::fill(decay_strength.begin(),decay_strength.end(),0.);
 
-  decay_angles.SetMixingAngle(0,2,3.1415/4.0);
-  decay_angles.SetMixingAngle(1,2,3.1415/4.0);
-  decay_angles.SetMixingAngle(0,1,3.1415/4.0);
 
-  decay_strength[1] = 1.0e-14;
+  gsl_matrix* tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(tau_mat, 1e60); // Set lifetimes to effective stability.
 
-  nusqdec.Set_Decay_Matrix(decay_angles,decay_strength);
+	//Setting for 4 neutrino case with stable nu_1. 
+
+  gsl_matrix_set(tau_mat,0,1,1.0e10); //tau_21
+
+  gsl_matrix_set(tau_mat,0,2,1.0e10); //tau_31
+  gsl_matrix_set(tau_mat,1,2,1.0e10); //tau_32
+
+  gsl_matrix_set(tau_mat,0,3,1.0e10); //tau_41
+  gsl_matrix_set(tau_mat,1,3,1.0e10); //tau_42
+  gsl_matrix_set(tau_mat,2,3,1.0e10); //tau_43
+
+
+  gsl_matrix* rate_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(rate_mat);
+
+	double rate;
+	double colrate;
+	for (size_t col=0; col<numneu; col++)
+	{
+		colrate=0;
+
+		for (size_t row=0; row<col; row++)
+		{	
+			rate = 1.0/gsl_matrix_get(tau_mat,row,col);
+			gsl_matrix_set(rate_mat,row,col,rate);
+			colrate+=rate;
+		}
+
+		gsl_matrix_set(rate_mat,col,col,colrate);
+	}	
+
+  nusqdec.Set_Decay_Matrix(rate_mat);
 
 	std::cout << "About to Evolve!" << std::endl;
 
@@ -81,10 +130,21 @@ int main(int argc, char* argv[])
   for(size_t ie=0; ie<e_nodes.size(); ie++){
     std::cout << e_nodes[ie]/units.GeV << " ";
     for(size_t flv=0; flv< numneu; flv++){
-      std::cout << nusqdec.EvalFlavorAtNode(flv,ie,0) << " " << nusqdec.EvalFlavorAtNode(flv,ie,1) << " ";
+      std::cout << nusqdec.EvalFlavorAtNode(flv,ie,0) << " ";
     }
-    std::cout << std::endl;
+    for(size_t flv=0; flv< numneu; flv++){
+	  if (flv==numneu-1)
+	  {
+        std::cout << nusqdec.EvalFlavorAtNode(flv,ie,1) << std::endl;
+	  }
+	  else
+	  {
+        std::cout << nusqdec.EvalFlavorAtNode(flv,ie,1) << " ";
+	  }
+    }
   }
 
+  gsl_matrix_free(tau_mat);  
+  gsl_matrix_free(rate_mat);  
   return 0;
 }
