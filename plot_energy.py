@@ -13,8 +13,10 @@ plt.rc('font', size=16)
 
 
 #regen_data=np.load("output/regen_orderflip.npz")
-regen_data=np.load("output/test_fresh.npz")
+regen_data=np.load("output/dcy_noregen_test.npz")
 noregen_data=np.load("output/dcy14_noregen_softail.npz")
+
+nusheep_data=np.load("energy_noregen_freshtest_nusheep_nomatter.npz")
 
 regen_energy=regen_data['e']
 regen_flux=regen_data['flux']
@@ -25,11 +27,18 @@ pi=3.141592
 #-----------------------------------------------------------------#
 #Plotting data
 
+print regen_energy
+print nusheep_data['_E']
+
+
 fig,ax = plt.subplots()
-ax.plot(regen_energy,regen_flux[1,0,:],color="red",marker="o",lw=2,ls='-',label="Electron")
+ax.plot(regen_energy,regen_flux[1,1,:],color="red",marker="o",lw=2,ls='-',label="Nusquids_Muon")
+ax.plot(np.multiply(1e-9,nusheep_data['_E']),nusheep_data['_num_vec'],color="blue",marker="o",lw=2,ls='-',label="Nusheep Muon")
+"""
 ax.plot(regen_energy,regen_flux[1,1,:],color="green",marker="o",lw=2,ls='-',label="Muon")
 ax.plot(regen_energy,regen_flux[1,2,:],color="blue",marker="o",lw=2,ls='-',label="Tau")
 ax.plot(regen_energy,regen_flux[1,3,:],color="purple",marker="o",lw=2,ls='-',label="Sterile")
+"""
 #ax.plot(noregen_energy,noregen_flux[1,2,:],color="blue",lw=2,marker="o",ls='-',label="Without Regeneration")
 plt.xscale('log')
 #ax.set_ylim([0,1e-10])

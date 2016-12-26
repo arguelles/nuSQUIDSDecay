@@ -50,11 +50,14 @@ int main(int argc, char* argv[])
     }
   }
 
-  double m1 = 1.0e-3;
-  double m2 = 1.0e-2;
-  double m3 = 1.0e-1;
+  double m1 = 0.0;
+  double m2 = sqrt(nusqdec.Get_SquareMassDifference(1));
+  double m3 = sqrt(nusqdec.Get_SquareMassDifference(2));
   double m4 = 1.0;
-  double mphi = 1.0e-4;
+  double mphi = 0.0;
+
+
+  nusqdec.Set_SquareMassDifference(3,m4*m4 - m1*m1);  //dm^2_41
 
   nusqdec.Set_MixingParametersToDefault();
 
@@ -65,10 +68,6 @@ int main(int argc, char* argv[])
   nusqdec.Set_MixingAngle(0,3,0.785398);
   nusqdec.Set_MixingAngle(1,3,0.785398);
   nusqdec.Set_MixingAngle(2,3,0.785398);
-  // square mass differences
-  nusqdec.Set_SquareMassDifference(1,m2*m2 - m1*m1); //dm^2_21
-  nusqdec.Set_SquareMassDifference(2,m3*m3 - m1*m1);  //dm^2_31
-  nusqdec.Set_SquareMassDifference(3,m4*m4 - m1*m1);  //dm^2_41
 	
   nusqdec.Set_m_phi(mphi);
   nusqdec.Set_m_nu(m1, 0);
