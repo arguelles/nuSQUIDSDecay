@@ -5,7 +5,7 @@ CFLAGS= -O3 -fPIC -std=c++11
 CFLAGS+= -I./inc `pkg-config --cflags squids nusquids hdf5`
 LDFLAGS+= `pkg-config --libs squids nusquids hdf5`
 
-all: mains/exCross.o mains/run_decay
+all: mains/exCross.o mains/run_decay mains/run_decay_constant_density
 
 mains/exCross.o : inc/exCross.h mains/exCross.cpp
 	@ $(CXX) $(CFLAGS) -c mains/exCross.cpp -o $@
@@ -13,6 +13,10 @@ mains/exCross.o : inc/exCross.h mains/exCross.cpp
 mains/run_decay : mains/run_decay.cpp mains/exCross.o inc/nusquids_decay.h
 	@echo Compiling run_decay
 	@ $(CXX) $(CFLAGS) mains/run_decay.cpp mains/exCross.o  -o $@ $(LDFLAGS)
+
+mains/run_decay_constant_density : mains/run_decay_constant_density.cpp mains/exCross.o inc/nusquids_decay.h
+	@echo Compiling run_decay_constant_density
+	@ $(CXX) $(CFLAGS) mains/run_decay_constant_density.cpp mains/exCross.o  -o $@ $(LDFLAGS)
 
 .PHONY: clean
 clean:

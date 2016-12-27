@@ -21,8 +21,8 @@ int main(int argc, char* argv[])
 
   nuSQUIDSDecay nusqdec(e_nodes,numneu);
 
-  std::shared_ptr<ConstantDensity> body = std::make_shared<ConstantDensity>(1.,0.5);
-  std::shared_ptr<ConstantDensity::Track> track = std::make_shared<ConstantDensity::Track>(500.0*units.km);
+  std::shared_ptr<ConstantDensity> body = std::make_shared<ConstantDensity>(3.,0.5);
+  std::shared_ptr<ConstantDensity::Track> track = std::make_shared<ConstantDensity::Track>(64573027604478.22);
 
   nusqdec.Set_Body(body);
   nusqdec.Set_Track(track);
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
   gsl_matrix_set_all(tau_mat, 1e60); // Set lifetimes to effective stability.
 
 	//Setting for 4 neutrino case with stable nu_1.
-  double lifetime = 1.0e2;
+  double lifetime = 1.0e60;
   gsl_matrix_set(tau_mat,0,3,lifetime); //tau_41
   gsl_matrix_set(tau_mat,1,3,lifetime); //tau_42
   gsl_matrix_set(tau_mat,2,3,lifetime); //tau_43
@@ -111,6 +111,13 @@ int main(int argc, char* argv[])
     nusqdec.Set_Decay_Matrix(rate_mat);
     gsl_matrix_free(rate_mat);
   }
+
+  //We set the GSL step function
+  nusqdec.Set_GSL_step(gsl_odeiv2_step_rk4);
+
+  //Setting the numerical precision of gsl integrator.
+  nusqdec.Set_rel_error(1.0e-5);
+  nusqdec.Set_abs_error(1.0e-5);
 
 	std::cout << "About to Evolve!" << std::endl;
   nusqdec.EvolveState();
