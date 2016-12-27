@@ -19,17 +19,17 @@ int main(int argc, char* argv[])
   const unsigned int numneu = 4;
 
   nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e5*units.GeV,100);
+  //nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e3*units.GeV,10);
 
   nuSQUIDSDecay nusqdec(e_nodes,numneu);
 
 
+  //std::shared_ptr<EarthAtm> body = std::make_shared<EarthAtm>();
+  //std::shared_ptr<EarthAtm::Track> track = std::make_shared<EarthAtm::Track>(acos(-1.));
 
-
-  std::shared_ptr<EarthAtm> body = std::make_shared<EarthAtm>();
-  std::shared_ptr<EarthAtm::Track> track = std::make_shared<EarthAtm::Track>(acos(-1.));
-
-  //std::shared_ptr<Vacuum> body = std::make_shared<Vacuum>();
+  std::shared_ptr<Vacuum> body = std::make_shared<Vacuum>();
   //std::shared_ptr<Vacuum::Track> track = std::make_shared<Vacuum::Track>(12000.*units.km);
+  std::shared_ptr<Vacuum::Track> track = std::make_shared<Vacuum::Track>(2.0*6371.0*units.km);
 
   nusqdec.Set_Body(body);
   nusqdec.Set_Track(track);
@@ -56,8 +56,20 @@ int main(int argc, char* argv[])
   double m4 = 1.0;
   double mphi = 0.0;
 
+  std::vector<double> nu_mass(numneu);
+
+  nu_mass[0]=m1;	
+  nu_mass[1]=m2;	
+  nu_mass[2]=m3;	
+  nu_mass[3]=m4;	
 
   nusqdec.Set_SquareMassDifference(3,m4*m4 - m1*m1);  //dm^2_41
+
+	std::cout << "dm2_21: " << nusqdec.Get_SquareMassDifference(1) << std::endl;
+	std::cout << "dm2_31: " << nusqdec.Get_SquareMassDifference(2) << std::endl;
+	std::cout << "dm2_41: " << nusqdec.Get_SquareMassDifference(3) << std::endl;
+
+
 
   nusqdec.Set_MixingParametersToDefault();
 
@@ -68,6 +80,17 @@ int main(int argc, char* argv[])
   nusqdec.Set_MixingAngle(0,3,0.785398);
   nusqdec.Set_MixingAngle(1,3,0.785398);
   nusqdec.Set_MixingAngle(2,3,0.785398);
+
+
+  for (int row=0; row<numneu; row++)
+	{
+  	for (int col=row+1; col<numneu; col++)
+		{
+			std::cout << "(" << row << "," << col << "): " << nusqdec.Get_MixingAngle(row,col) << std::endl;	
+		}
+	}
+
+
 	
   nusqdec.Set_m_phi(mphi);
   nusqdec.Set_m_nu(m1, 0);
@@ -89,15 +112,16 @@ int main(int argc, char* argv[])
   gsl_matrix_set_all(tau_mat, 1e60); // Set lifetimes to effective stability.
 
 	//Setting for 4 neutrino case with stable nu_1. 
+  double lifetime = 1.0e2;
 
-  gsl_matrix_set(tau_mat,0,1,1.0e10); //tau_21
+  gsl_matrix_set(tau_mat,0,1,lifetime); //tau_21
 
-  gsl_matrix_set(tau_mat,0,2,1.0e10); //tau_31
-  gsl_matrix_set(tau_mat,1,2,1.0e10); //tau_32
+  gsl_matrix_set(tau_mat,0,2,lifetime); //tau_31
+  gsl_matrix_set(tau_mat,1,2,lifetime); //tau_32
 
-  gsl_matrix_set(tau_mat,0,3,1.0e10); //tau_41
-  gsl_matrix_set(tau_mat,1,3,1.0e10); //tau_42
-  gsl_matrix_set(tau_mat,2,3,1.0e10); //tau_43
+  gsl_matrix_set(tau_mat,0,3,lifetime); //tau_41
+  gsl_matrix_set(tau_mat,1,3,lifetime); //tau_42
+  gsl_matrix_set(tau_mat,2,3,lifetime); //tau_43
 
 
   gsl_matrix* rate_mat = gsl_matrix_alloc(numneu,numneu);
@@ -113,7 +137,7 @@ int main(int argc, char* argv[])
 		{	
 			rate = 1.0/gsl_matrix_get(tau_mat,row,col);
 			gsl_matrix_set(rate_mat,row,col,rate);
-			colrate+=rate;
+			colrate+=rate*nu_mass[col];
 		}
 
 		gsl_matrix_set(rate_mat,col,col,colrate);

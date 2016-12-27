@@ -169,6 +169,9 @@ protected:
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
+	  //std::cout << "IE: " << ie << "  E: " << E_range[ie] << std::endl; 
+	  //printmat(DT_evol[ie] * (0.5 / E_range[ie]),4,"GAMMA");
+	  //std::cout << std::endl;
       return DT_evol[ie] * (0.5 / E_range[ie]);
   }
 
@@ -288,6 +291,7 @@ public:
 		throw std::runtime_error("size2 mismatch while constructing decay matrix.");
 	}
 
+	/*
 	double colsum;
 	for (size_t col=0; col<m->size2; col++)
 	{
@@ -303,7 +307,7 @@ public:
 			throw std::runtime_error("Off-diagonal decay rates do not sum to diagonal rates.");
 		}
 	}
-
+	*/
 
 	gsl_matrix_memcpy(rate_mat,m);
     DT = squids::SU_vector(numneu);
