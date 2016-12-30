@@ -169,9 +169,27 @@ protected:
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
-	  //std::cout << "IE: " << ie << "  E: " << E_range[ie] << std::endl; 
+/*
+	  std::cout << "IE: " << ie << "  E: " << E_range[ie] << std::endl; 
 	  //printmat(DT_evol[ie] * (0.5 / E_range[ie]),4,"GAMMA");
-	  //std::cout << std::endl;
+
+	  std::cout << std::endl;
+			for (unsigned int i=0; i<4; i++)
+			{
+				std::cout << (1.0 / E_range[ie])* DT_evol[ie]*evol_b0_proj[irho][i][ie] << " ";
+			}
+			std::cout << std::endl;
+			if (ie==5)
+			{
+				for (unsigned int j=0; j<4; j++)
+				{
+      				std::cout << state[ie].rho[irho]*evol_b0_proj[irho][j][ie] << " ";
+				}
+				std::cout << std::endl;
+			}
+
+*/
+
       return DT_evol[ie] * (0.5 / E_range[ie]);
   }
 
@@ -184,6 +202,9 @@ protected:
     size_t E0_index;
     double my_pstar;
 	double gamma;
+
+
+
 
     //printmat(decay_regeneration, numneu, "DCY_REGEN");
     // i-daughter index
@@ -310,6 +331,7 @@ public:
 	*/
 
 	gsl_matrix_memcpy(rate_mat,m);
+	//printgmat(rate_mat,4,"RATES: ");
     DT = squids::SU_vector(numneu);
 
 	double entry;
@@ -319,6 +341,9 @@ public:
     	DT += entry*squids::SU_vector::Projector(numneu, i);
     }
 
+	//printmat(evol_b0_proj[0][1][0],4,"PROJ");	
+	//printmat(evol_b0_proj[0][2][0],4,"APROJ");	
+    //printmat(squids::SU_vector::Projector(numneu, 1),4,"SQUIDPROJ: 1");
 	decay_parameters_set=true;
   }
 
@@ -337,6 +362,21 @@ public:
     for (i = 0; i < dim; i++) {
       for (j = 0; j < dim; j++) {
         std::cout << (mat)[j + dim * i] << " ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+  void printgmat(const gsl_matrix* mat, unsigned int dim,
+                std::string mname) const {
+    std::cout << "Matrix: " << mname << std::endl;
+
+    unsigned int i, j;
+
+    for (i = 0; i < dim; i++) {
+      for (j = 0; j < dim; j++) {
+        std::cout << gsl_matrix_get(mat,i,j) << " ";
       }
       std::cout << std::endl;
     }

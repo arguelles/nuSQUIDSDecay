@@ -24,12 +24,12 @@ int main(int argc, char* argv[])
   nuSQUIDSDecay nusqdec(e_nodes,numneu);
 
 
-  //std::shared_ptr<EarthAtm> body = std::make_shared<EarthAtm>();
-  //std::shared_ptr<EarthAtm::Track> track = std::make_shared<EarthAtm::Track>(acos(-1.));
+  std::shared_ptr<EarthAtm> body = std::make_shared<EarthAtm>();
+  std::shared_ptr<EarthAtm::Track> track = std::make_shared<EarthAtm::Track>(acos(-1.));
 
-  std::shared_ptr<Vacuum> body = std::make_shared<Vacuum>();
+  //std::shared_ptr<Vacuum> body = std::make_shared<Vacuum>();
   //std::shared_ptr<Vacuum::Track> track = std::make_shared<Vacuum::Track>(12000.*units.km);
-  std::shared_ptr<Vacuum::Track> track = std::make_shared<Vacuum::Track>(2.0*6371.0*units.km);
+  //std::shared_ptr<Vacuum::Track> track = std::make_shared<Vacuum::Track>(2.0*6371.0*units.km);
 
   nusqdec.Set_Body(body);
   nusqdec.Set_Track(track);
@@ -65,9 +65,9 @@ int main(int argc, char* argv[])
 
   nusqdec.Set_SquareMassDifference(3,m4*m4 - m1*m1);  //dm^2_41
 
-	std::cout << "dm2_21: " << nusqdec.Get_SquareMassDifference(1) << std::endl;
-	std::cout << "dm2_31: " << nusqdec.Get_SquareMassDifference(2) << std::endl;
-	std::cout << "dm2_41: " << nusqdec.Get_SquareMassDifference(3) << std::endl;
+	//std::cout << "dm2_21: " << nusqdec.Get_SquareMassDifference(1) << std::endl;
+	//std::cout << "dm2_31: " << nusqdec.Get_SquareMassDifference(2) << std::endl;
+	//std::cout << "dm2_41: " << nusqdec.Get_SquareMassDifference(3) << std::endl;
 
 
 
@@ -102,6 +102,7 @@ int main(int argc, char* argv[])
   //nusqdec.Set_ProgressBar(true);
   nusqdec.Set_IncoherentInteractions(false);
   //nusqdec.Set_IncoherentInteractions(true);
+  nusqdec.Set_OtherRhoTerms(false);
 
   squids::Const decay_angles;
   std::vector<double> decay_strength(numneu);
@@ -114,10 +115,10 @@ int main(int argc, char* argv[])
 	//Setting for 4 neutrino case with stable nu_1. 
   double lifetime = 1.0e2;
 
-  gsl_matrix_set(tau_mat,0,1,lifetime); //tau_21
+//  gsl_matrix_set(tau_mat,0,1,lifetime); //tau_21
 
-  gsl_matrix_set(tau_mat,0,2,lifetime); //tau_31
-  gsl_matrix_set(tau_mat,1,2,lifetime); //tau_32
+//  gsl_matrix_set(tau_mat,0,2,lifetime); //tau_31
+//  gsl_matrix_set(tau_mat,1,2,lifetime); //tau_32
 
   gsl_matrix_set(tau_mat,0,3,lifetime); //tau_41
   gsl_matrix_set(tau_mat,1,3,lifetime); //tau_42
@@ -145,10 +146,9 @@ int main(int argc, char* argv[])
 
   nusqdec.Set_Decay_Matrix(rate_mat);
 
-	std::cout << "About to Evolve!" << std::endl;
+	//nusqdec.Set_IncludeOscillations(false); 
 
   nusqdec.EvolveState();
-	std::cout << "Finished Evolution" << std::endl;
 
   for(size_t ie=0; ie<e_nodes.size(); ie++){
     std::cout << e_nodes[ie]/units.GeV << " ";
