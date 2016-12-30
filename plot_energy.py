@@ -53,12 +53,11 @@ pvec = np.vectorize(p_mumu)
 trueP = pvec(earth_diameter,np.multiply(trueE,1e9),0)
 shiftP = pvec(earth_diameter*(1.0+atm),np.multiply(trueE,1e9),0)
 
-"""
 print "---------------------"
 print "MAXIMUM ABS DEVIATION"
 print np.max(np.abs(np.subtract(regen_flux[1,1,:],nusheep_data['_num_vec'])))
 print "---------------------"
-
+"""
 fig,ax = plt.subplots()
 #ax.plot(regen_energy,regen_flux[1,1,:],color="red",marker="o",lw=2,ls='-',label="Nusquids Muon")
 ax.plot(regen_energy,regen_flux[1,1,:],color="red",marker="o",lw=2,ls='-',label="NuSQUIDS")
