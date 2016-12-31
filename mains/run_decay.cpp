@@ -99,14 +99,17 @@ int main(int argc, char* argv[])
   nusqdec.Set_m_nu(m4, 3);
 
   nusqdec.Set_initial_state(neutrino_state,flavor);
+
+	//------------------------//
+	//   Physics Switches	    //
+	//------------------------//
+
   //nusqdec.Set_ProgressBar(true);
   nusqdec.Set_IncoherentInteractions(false);
   //nusqdec.Set_IncoherentInteractions(true);
   nusqdec.Set_OtherRhoTerms(false);
 
-  squids::Const decay_angles;
-  std::vector<double> decay_strength(numneu);
-  std::fill(decay_strength.begin(),decay_strength.end(),0.);
+	//------------------------//
 
 
   gsl_matrix* tau_mat = gsl_matrix_alloc(numneu,numneu);
