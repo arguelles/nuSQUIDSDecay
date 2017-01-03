@@ -24,6 +24,11 @@ int main(int argc, char* argv[])
   nuSQUIDSDecay nusqdec(e_nodes,numneu);
 
 
+	double tolerance=1.0e-16;
+	// setup integration settings
+	nusqdec.Set_rel_error(tolerance);
+	nusqdec.Set_abs_error(tolerance);
+
   std::shared_ptr<EarthAtm> body = std::make_shared<EarthAtm>();
   std::shared_ptr<EarthAtm::Track> track = std::make_shared<EarthAtm::Track>(acos(-1.));
 
@@ -81,7 +86,7 @@ int main(int argc, char* argv[])
   nusqdec.Set_MixingAngle(1,3,0.785398);
   nusqdec.Set_MixingAngle(2,3,0.785398);
 
-
+	/*
   for (int row=0; row<numneu; row++)
 	{
   	for (int col=row+1; col<numneu; col++)
@@ -89,7 +94,7 @@ int main(int argc, char* argv[])
 			std::cout << "(" << row << "," << col << "): " << nusqdec.Get_MixingAngle(row,col) << std::endl;	
 		}
 	}
-
+	*/
 
 	
   nusqdec.Set_m_phi(mphi);
@@ -107,7 +112,8 @@ int main(int argc, char* argv[])
   //nusqdec.Set_ProgressBar(true);
   nusqdec.Set_IncoherentInteractions(false);
   //nusqdec.Set_IncoherentInteractions(true);
-  nusqdec.Set_OtherRhoTerms(false);
+  //nusqdec.Set_OtherRhoTerms(false);
+  nusqdec.Set_OtherRhoTerms(true);
 
 	//------------------------//
 

@@ -14,18 +14,26 @@ plt.rc('font', size=16)
 
 #regen_data=np.load("output/regen_orderflip.npz")
 #regen_data=np.load("output/dcy_noregen_vaccuum_2flv.npz")
-regen_data=np.load("output/newtest.npz")
+regen_regdata=np.load("output/earth_dcy_e20_10e2lt_regen.npz")
+regen_regdatae6=np.load("output/earth_dcy_e6_10e2lt_regen.npz")
+regen_regdatae7=np.load("output/earth_dcy_e7_10e2lt_regen.npz")
+regen_data=np.load("output/earth_dcy_e20_10e2lt.npz")
 #regen_datafast=np.load("output/dcy_noregen_vacuum_fastdcy_massfix.npz")
 #noregen_data=np.load("output/dcy14_noregen_softail.npz")
 
 #nusheep_data=np.load("energy_noregen_freshtest_nusheep_nomatter.npz")
-nusheep_data=np.load("energy_noregen_newtest_nomatter.npz")
+nusheep_regdata=np.load("energy_regen_earthmatter_matter.npz")
+nusheep_data=np.load("energy_noregen_earthmatter_matter.npz")
 #nusheep_datafast=np.load("energy_noregen_round2_fastdcy_nomatter.npz")
 #nusheep_data_noacmix=np.load("energy_noregen_freshtest_nusheep_noactivemix_matter.npz")
 
-regen_energy=regen_data['e']
+regen_energy=regen_regdata['e']
+noregen_energy=regen_data['e']
 #regen_energyfast=regen_datafast['e']
-regen_flux=regen_data['flux']
+regen_flux=regen_regdata['flux']
+regene6_flux=regen_regdatae6['flux']
+regene7_flux=regen_regdatae7['flux']
+noregen_flux=regen_data['flux']
 #regen_fluxfast=regen_datafast['flux']
 #noregen_energy=noregen_data['e']
 #noregen_flux=noregen_data['flux']
@@ -60,24 +68,26 @@ print "---------------------"
 """
 fig,ax = plt.subplots()
 #ax.plot(regen_energy,regen_flux[1,1,:],color="red",marker="o",lw=2,ls='-',label="Nusquids Muon")
-ax.plot(regen_energy,regen_flux[1,1,:],color="red",marker="o",lw=2,ls='-',label="NuSQUIDS")
+#ax.plot(regen_energy,regen_flux[1,1,:],color="red",marker="o",lw=2,ls='-',label="NuSQUIDS")
 #ax.plot(np.multiply(1e-9,nusheep_data['_E']),nusheep_data['_num_vec'],color="blue",marker="o",lw=2,ls='-',label="Nusheep Muon")
-ax.plot(np.multiply(1e-9,nusheep_data['_E']),nusheep_data['_num_vec'],color="blue",marker="o",lw=2,ls='--',label="NuSHEEP")
+ax.plot(np.multiply(1e-9,nusheep_regdata['_E']),nusheep_regdata['_num_vec'],color="blue",marker="",lw=2,ls='-',label="NuSHEEP Regen")
+ax.plot(np.multiply(1e-9,nusheep_data['_E']),nusheep_data['_num_vec'],color="blue",marker="",lw=2,ls='--',label="NuSHEEP")
 #ax.plot(trueE,trueP,color="black",lw=2,ls='-',label="True Muon")
 #ax.plot(trueE,shiftP,color="black",lw=2,ls='--',label="True Muon L-Shifted")
 #ax.plot(np.multiply(1e-9,nusheep_data_noacmix['_E']),nusheep_data_noacmix['_num_vec'],color="purple",marker="o",lw=2,ls='-',label="Nusheep Muon Noactive")
-"""
-ax.plot(regen_energy,regen_flux[1,1,:],color="green",marker="o",lw=2,ls='-',label="Muon")
-ax.plot(regen_energy,regen_flux[1,2,:],color="blue",marker="o",lw=2,ls='-',label="Tau")
-ax.plot(regen_energy,regen_flux[1,3,:],color="purple",marker="o",lw=2,ls='-',label="Sterile")
-"""
+ax.plot(regen_energy,regen_flux[1,1,:],color="red",marker="",lw=2,ls='-',label="NuSQUIDS Regen")
+ax.plot(regen_energy,regene6_flux[1,1,:],color="green",marker="",lw=2,ls='-',label="NuSQUIDS Regen")
+ax.plot(regen_energy,regene7_flux[1,1,:],color="purple",marker="",lw=2,ls='-',label="NuSQUIDS Regen")
+ax.plot(noregen_energy,noregen_flux[1,1,:],color="red",marker="",lw=2,ls='--',label="NuSQUIDS")
 #ax.plot(noregen_energy,noregen_flux[1,2,:],color="blue",lw=2,marker="o",ls='-',label="Without Regeneration")
 plt.xscale('log')
+#plt.yscale('log')
 #ax.set_ylim([0,1e-10])
-#ax.set_xlim([1e3,1e5])
 
+ax.set_xlim([1e2,1e4])
+ax.set_ylim([0.0,0.6])
 ax.set_xlabel("Neutrino Energy [GeV]")
-ax.set_ylabel(r'$\frac{d\Phi}{dE}$')
+ax.set_ylabel(r'$P_{\mu\rightarrow\mu}$')
 ax.legend(loc='lower left', shadow=False,fancybox=True)
 
 """
