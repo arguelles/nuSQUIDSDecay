@@ -15,17 +15,15 @@ int main(int argc, char* argv[])
   squids::Const units;
   const unsigned int e = 0;
   const unsigned int mu = 1;
-  const unsigned int tau = 2;
+  //const unsigned int tau = 2;
   const unsigned int numneu = 4;
 
   nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e5*units.GeV,100);
-  //nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e3*units.GeV,10);
 
   nuSQUIDSDecay nusqdec(e_nodes,numneu);
 
-
-	double tolerance=1.0e-16;
 	// setup integration settings
+	double tolerance=1.0e-12;
 	nusqdec.Set_rel_error(tolerance);
 	nusqdec.Set_abs_error(tolerance);
 
@@ -55,27 +53,11 @@ int main(int argc, char* argv[])
     }
   }
 
-  double m1 = 0.0;
-  double m2 = sqrt(nusqdec.Get_SquareMassDifference(1));
-  double m3 = sqrt(nusqdec.Get_SquareMassDifference(2));
-  double m4 = 1.0;
-  double mphi = 0.0;
 
-  std::vector<double> nu_mass(numneu);
-
-  nu_mass[0]=m1;	
-  nu_mass[1]=m2;	
-  nu_mass[2]=m3;	
-  nu_mass[3]=m4;	
-
-  nusqdec.Set_SquareMassDifference(3,m4*m4 - m1*m1);  //dm^2_41
-
-	//std::cout << "dm2_21: " << nusqdec.Get_SquareMassDifference(1) << std::endl;
-	//std::cout << "dm2_31: " << nusqdec.Get_SquareMassDifference(2) << std::endl;
-	//std::cout << "dm2_41: " << nusqdec.Get_SquareMassDifference(3) << std::endl;
-
-
-
+  nusqdec.Set_SquareMassDifference(3,1.0);  //dm^2_41
+	nusqdec.SetPhiMass(0.0);
+	nusqdec.SetNeutrinoMasses(0.0);
+	
   nusqdec.Set_MixingParametersToDefault();
 
   // mixing angles
@@ -95,14 +77,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	*/
-
 	
-  nusqdec.Set_m_phi(mphi);
-  nusqdec.Set_m_nu(m1, 0);
-  nusqdec.Set_m_nu(m2, 1);
-  nusqdec.Set_m_nu(m3, 2);
-  nusqdec.Set_m_nu(m4, 3);
-
   nusqdec.Set_initial_state(neutrino_state,flavor);
 
 	//------------------------//
@@ -110,52 +85,29 @@ int main(int argc, char* argv[])
 	//------------------------//
 
   //nusqdec.Set_ProgressBar(true);
-  nusqdec.Set_IncoherentInteractions(false);
+  nusqdec.SetIncoherentInteractions(false);
   //nusqdec.Set_IncoherentInteractions(true);
   //nusqdec.Set_OtherRhoTerms(false);
   nusqdec.Set_OtherRhoTerms(true);
+	//nusqdec.Set_IncludeOscillations(false); 
 
 	//------------------------//
 
 
-  gsl_matrix* tau_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_all(tau_mat, 1e60); // Set lifetimes to effective stability.
+  gsl_matrix* tau = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(tau, 1e60); // Set lifetimes to effective stability.
 
 	//Setting for 4 neutrino case with stable nu_1. 
   double lifetime = 1.0e2;
 
-//  gsl_matrix_set(tau_mat,0,1,lifetime); //tau_21
+//  gsl_matrix_set(tau,0,1,lifetime); //tau_21
+//  gsl_matrix_set(tau,0,2,lifetime); //tau_31
+//  gsl_matrix_set(tau,1,2,lifetime); //tau_32
+  gsl_matrix_set(tau,0,3,lifetime); //tau_41
+  gsl_matrix_set(tau,1,3,lifetime); //tau_42
+  gsl_matrix_set(tau,2,3,lifetime); //tau_43
 
-//  gsl_matrix_set(tau_mat,0,2,lifetime); //tau_31
-//  gsl_matrix_set(tau_mat,1,2,lifetime); //tau_32
-
-  gsl_matrix_set(tau_mat,0,3,lifetime); //tau_41
-  gsl_matrix_set(tau_mat,1,3,lifetime); //tau_42
-  gsl_matrix_set(tau_mat,2,3,lifetime); //tau_43
-
-
-  gsl_matrix* rate_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_zero(rate_mat);
-
-	double rate;
-	double colrate;
-	for (size_t col=0; col<numneu; col++)
-	{
-		colrate=0;
-
-		for (size_t row=0; row<col; row++)
-		{	
-			rate = 1.0/gsl_matrix_get(tau_mat,row,col);
-			gsl_matrix_set(rate_mat,row,col,rate);
-			colrate+=rate*nu_mass[col];
-		}
-
-		gsl_matrix_set(rate_mat,col,col,colrate);
-	}	
-
-  nusqdec.Set_Decay_Matrix(rate_mat);
-
-	//nusqdec.Set_IncludeOscillations(false); 
+  nusqdec.SetDecayMatrix(tau);
 
   nusqdec.EvolveState();
 
@@ -176,7 +128,6 @@ int main(int argc, char* argv[])
     }
   }
 
-  gsl_matrix_free(tau_mat);  
-  gsl_matrix_free(rate_mat);  
+  gsl_matrix_free(tau);  
   return 0;
 }

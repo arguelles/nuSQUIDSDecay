@@ -37,44 +37,55 @@ Janet Conrad (conrad@mit.edu)
 #include <nuSQuIDS/nuSQuIDS.h>
 #include "exCross.h"
 
-bool close_enough(double x, double y)
-{
-    double epsilon = std::numeric_limits<double>::epsilon();
-    return (std::abs(x - y) <= epsilon * std::abs(x)
-        && std::abs(x - y) <= epsilon * std::abs(y));
-}
-
 namespace nusquids {
 
 class nuSQUIDSDecay : public nuSQUIDS {
 private:
   bool iincoherent_int = false;
-  bool decay_parameters_set = false;
+  bool DecayParametersSet = false;
+  bool NeutrinoMassesSet = false;
+  bool PhiMassSet = false;
+
+	//decay parameters: clean up! Remove from HDF5?
   squids::Const decay_parameters;
   std::vector<double> decay_strength;
   squids::SU_vector DT;
   std::vector<squids::SU_vector> DT_evol;
 
   gsl_matrix* rate_mat;
+	gsl_matrix* pstar_mat;
 
-  std::vector<double> m_nu;
-  double m_phi;
+  std::vector<double> NeutrinoMasses;
+  double PhiMass;
 
-  double pstar(unsigned int i, unsigned int j) const {
-    if (m_nu[i] < m_nu[j] + m_phi) {
-		//std::cout << "I,J: " << i << " " << j << std::endl;
-		//std::cout << "MI,MJ: " << m_nu[i] << " " << m_nu[j] << std::endl;
-		//std::cout << "MPHI: " << m_phi << std::endl;
+  double pstar(unsigned int daughter, unsigned int parent) const {
+    if (NeutrinoMasses[parent] < NeutrinoMasses[daughter] + PhiMass) {
       throw std::runtime_error("non physical case");
     }
-    double retval = (1.0 / (2.0 * m_nu[i])) *
-                    sqrt((pow(m_nu[i], 2) - pow(m_nu[j] + m_phi, 2)) *
-                         (pow(m_nu[i], 2) - pow(m_nu[j] - m_phi, 2)));
+    double retval = (1.0 / (2.0 * NeutrinoMasses[daughter])) *
+                    sqrt((pow(NeutrinoMasses[daughter], 2) - pow(NeutrinoMasses[parent] + PhiMass, 2)) *
+                         (pow(NeutrinoMasses[daughter], 2) - pow(NeutrinoMasses[parent] - PhiMass, 2)));
     return retval;
   }
 
-  unsigned int nearest_element(double value) const {
+	void PreComputePstarMat(void){
+    if (!NeutrinoMassesSet)
+      throw std::runtime_error("neutrino masses not set");
+    if (!PhiMassSet)
+      throw std::runtime_error("phi mass not set");
 
+	  for (unsigned int col=0; col<numneu; col++)
+	  {
+	    for (unsigned int row=0; row<col; row++)
+	    {
+				double val = pstar(row,col); 
+	      gsl_matrix_set(pstar_mat,row,col,val);
+	    }
+		}
+	}
+
+
+  unsigned int nearest_element(double value) const {
     std::vector<double> diffs(E_range.size());
     for (size_t i = 0; i < E_range.size(); i++) {
       diffs[i] = fabs(value - E_range[i]);
@@ -86,8 +97,13 @@ private:
 
 protected:
   void AddToPreDerive(double x) {
-    if (!decay_parameters_set)
+    if (!DecayParametersSet)
       throw std::runtime_error("decay parameters not set");
+    if (!NeutrinoMassesSet)
+      throw std::runtime_error("neutrino masses not set");
+    if (!PhiMassSet)
+      throw std::runtime_error("phi mass not set");
+
     for (int ei = 0; ei < ne; ei++) {
       // asumming same mass hamiltonian for neutrinos/antineutrinos
       squids::SU_vector h0 = H0(E_range[ei], 0);
@@ -169,82 +185,27 @@ protected:
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
-	  //std::cout << "IE: " << ie << "  E: " << E_range[ie] << std::endl;
-	  //printmat(DT_evol[ie] * (0.5 / E_range[ie]),4,"GAMMA");
-	  //std::cout << std::endl;
       return DT_evol[ie] * (0.5 / E_range[ie]);
   }
 
   squids::SU_vector InteractionsRho(unsigned int ie, unsigned int irho) const {
     squids::SU_vector decay_regeneration(numneu);
-    // here one needs to fill in the extra decay regeneration terms
     double Ef = E_range[ie];
-    // auxiliary variables
-    double E0;
-    size_t E0_index;
-    double my_pstar;
-	double gamma;
-
-    //printmat(decay_regeneration, numneu, "DCY_REGEN");
     // i-daughter index
     for (size_t i = 0; i < numneu; i++) {
       // j-parent index
       for (size_t j = i + 1; j < numneu; j++) {
-        my_pstar = pstar(j,i);
-        gamma = Ef/my_pstar;
-        E0 = m_nu[j]*gamma;
-        E0_index = nearest_element(E0);
-        decay_regeneration +=
-                              (state[E0_index].rho[irho]*evol_b0_proj[irho][j][E0_index])*
-                              (gsl_matrix_get(rate_mat,i,j)/gamma)*
-                              (evol_b0_proj[irho][i][ie]);
-
-        //---------Testing trace functionality---------//
-
-        /*
-        std::vector<double> rhocomps =
-            (state[E0_index].rho[irho]).GetComponents();
-
-        std::cout << "rhocomps: " << std::endl;
-        unsigned int l;
-        for (l = 0; l < rhocomps.size(); l++) {
-          std::cout << rhocomps[l] << " ";
-        }
-        std::cout << std::endl;
-
-        std::vector<double> projcomps =
-            (evol_b0_proj[irho][i][E0_index]).GetComponents();
-
-        std::cout << "projcomps: " << std::endl;
-        for (l = 0; l < projcomps.size(); l++) {
-          std::cout << projcomps[l] << " ";
-        }
-        std::cout << std::endl;
-
-        unsigned int k;
-        for (k = 0; k < numneu; k++) {
-          std::cout << k << " " << m_nu[k] << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "i,j: "
-                  << "(" << i << " , " << j << ")" << std::endl;
-        std::cout << "PHIMASS : " << m_phi << std::endl;
-        std::cout << "E0 : " << E0 << std::endl;
-        std::cout << "E0closest : " << E_range[E0_index] << std::endl;
-        std::cout << "E0closestp1 : " << E_range[E0_index + 1] << std::endl;
-        std::cout << "E0closestm1 : " << E_range[E0_index - 1] << std::endl;
-        std::cout << "Ef : " << E_range[ie] << std::endl;
-        //std::cout << "Pstar : " << pstar(i, j) << std::endl;
-        printmat(DT_evol[ie], numneu, "DTEVOL");
-        printmat(state[E0_index].rho[irho], numneu, "RHOMATRIX");
-        printmat(evol_b0_proj[irho][i][E0_index], numneu, "MASSPROJ:I");
-        printmat(evol_b0_proj[irho][j][E0_index], numneu, "MASSPROJ:J");
-        printmat(decay_regeneration, numneu, "DCY_REGEN");
-        */
+				std::cout << "Matrx Pstar: " << gsl_matrix_get(pstar_mat,i,j) << std::endl;
+        double gamma = Ef/gsl_matrix_get(pstar_mat,i,j);
+        double E0 = NeutrinoMasses[j]*gamma;
+        size_t E0_index = nearest_element(E0);
+        decay_regeneration += (state[E0_index].rho[irho]
+					*evol_b0_proj[irho][j][E0_index])
+					*(gsl_matrix_get(rate_mat,i,j)/gamma)
+					*(evol_b0_proj[irho][i][ie]);
       }
     }
 
-    //  do not modify after this line
     if (iincoherent_int)
       return nuSQUIDS::InteractionsRho(ie, irho) + decay_regeneration;
     else
@@ -265,44 +226,40 @@ public:
     }
 
     // allocating space for neutrino masses
-    m_nu.resize(numneu);
+    NeutrinoMasses.resize(numneu);
 
     // allocating memory for rate matrix
     rate_mat = gsl_matrix_alloc(numneu,numneu);
+
+    // allocating memory for pstar matrix
+    pstar_mat = gsl_matrix_alloc(numneu,numneu);
   }
 
   ~nuSQUIDSDecay(){
     gsl_matrix_free(rate_mat);
+    gsl_matrix_free(pstar_mat);
   }
 
-  void Set_Decay_Matrix(gsl_matrix* m){
-
-    if (rate_mat->size1 != m->size1){
+  void SetDecayMatrix(gsl_matrix* tau){
+    if (rate_mat->size1 != tau->size1){
       throw std::runtime_error("size1 mismatch while constructing decay matrix.");
     }
-    if (rate_mat->size2 != m->size2){
+    if (rate_mat->size2 != tau->size2){
       throw std::runtime_error("size2 mismatch while constructing decay matrix.");
     }
 
-    /*
-    double colsum;
-    for (size_t col=0; col<m->size2; col++)
-    {
-        colsum=0;
-
-        for (size_t row=0; row<col; row++)
-        {
-            colsum+=gsl_matrix_get(m,row,col);
-        }
-
-      if (!close_enough(gsl_matrix_get(m,col,col),colsum))
-      {
-        throw std::runtime_error("Off-diagonal decay rates do not sum to diagonal rates.");
-      }
-    }
-    */
-
-    gsl_matrix_memcpy(rate_mat,m);
+	  gsl_matrix_set_zero(rate_mat);
+	  for (size_t col=0; col<numneu; col++)
+	  {
+	    double colrate=0;
+	    for (size_t row=0; row<col; row++)
+	    {
+	      double rate = 1.0/gsl_matrix_get(tau,row,col);
+	      gsl_matrix_set(rate_mat,row,col,rate);
+	      colrate+=rate*NeutrinoMasses[col];
+	    }
+	    gsl_matrix_set(rate_mat,col,col,colrate);
+		}
 
     DT = squids::SU_vector(numneu);
     for(size_t i = 0; i < numneu; i++){
@@ -310,14 +267,42 @@ public:
       DT += entry*squids::SU_vector::Projector(numneu, i);
     }
 
-    decay_parameters_set=true;
+    DecayParametersSet=true;
   }
 
-  void Set_IncoherentInteractions(bool opt) { iincoherent_int = opt; }
 
-  void Set_m_nu(double mass, unsigned int state) { m_nu[state] = mass; }
+	gsl_matrix* GetDecayMatrix(void){
+		return rate_mat;
+	}
 
-  void Set_m_phi(double mass) { m_phi = mass; }
+  void SetIncoherentInteractions(bool opt) { iincoherent_int = opt; }
+
+	void SetNeutrinoMasses(double lightmass){
+		NeutrinoMasses[0] = lightmass;
+		for (unsigned int i=1; i<numneu; i++){
+			NeutrinoMasses[i] = sqrt(Get_SquareMassDifference(i) + NeutrinoMasses[0]*NeutrinoMasses[0]);
+		}
+		NeutrinoMassesSet=true;
+		PreComputePstarMat();
+	}
+		
+
+	double GetNeutrinoMass(unsigned int index){
+    if (index>=numneu){
+      throw std::runtime_error("Index larger than numneu-1");
+    }
+		return NeutrinoMasses[index];
+	}
+
+	void SetPhiMass(double PhiMass_){
+		PhiMass = PhiMass_;
+		PhiMassSet=true;
+	}
+
+	double GetPhiMass(void){
+		return PhiMass;
+	}
+
 
   void printmat(const squids::SU_vector mat, unsigned int dim,
                 std::string mname) const {
@@ -328,6 +313,22 @@ public:
     for (i = 0; i < dim; i++) {
       for (j = 0; j < dim; j++) {
         std::cout << (mat)[j + dim * i] << " ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+
+  void printgslmat(const gsl_matrix* mat, unsigned int dim,
+                std::string mname) const {
+    std::cout << "Matrix: " << mname << std::endl;
+
+    unsigned int i, j;
+
+    for (i = 0; i < dim; i++) {
+      for (j = 0; j < dim; j++) {
+        std::cout << gsl_matrix_get(mat,i,j) << " ";
       }
       std::cout << std::endl;
     }
