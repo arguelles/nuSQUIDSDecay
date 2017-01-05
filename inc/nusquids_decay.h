@@ -37,8 +37,10 @@ Janet Conrad (conrad@mit.edu)
 #include <nuSQuIDS/nuSQuIDS.h>
 #include "exCross.h"
 
+
 namespace nusquids {
 
+//! Implements neutrino decay using the nusquids package.
 class nuSQUIDSDecay : public nuSQUIDS {
 private:
 	//! A switch for incoherent interactions.
@@ -112,9 +114,9 @@ private:
 
 	//--------------------------------------------------------//
 	//! 	
-	/*! 
-	\param
-	\return 
+	/*! Precomputes entries of pstar_mat
+	Note: called within SetNeutrinoMasses(). Requires PhiMass to
+	be previously set.
 	*/
 
 	void PreComputePstarMat(void){
@@ -134,18 +136,24 @@ private:
 	}
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Given a double, finds the nearest double in the E_range array.	
 	/*! 
-	\param
-	\return 
+	Given a double argument, searches E_range for the element of smallest
+	absolute value difference from the argument. 
+	\param value is the argument whose closest match in E_range we're looking for.
+	\return the index of the closest element in E_range to value.
 	*/
 
   unsigned int nearest_element(double value) const {
+		//Generate a vector of absolute differences between value
+		//and each element in E_range. 
     std::vector<double> diffs(E_range.size());
     for (size_t i = 0; i < E_range.size(); i++) {
       diffs[i] = fabs(value - E_range[i]);
     }
 
+		//Return the index corresponding to the element of minimum difference
+		//in E_range.
     return std::distance(diffs.begin(),
                          std::min_element(diffs.begin(), diffs.end()));
   }
@@ -153,7 +161,7 @@ private:
 protected:
 
 	//--------------------------------------------------------//
-	//! 	
+	//! FIXME: Carlos, can you elaborate on the implementation?	
 	/*! 
 	\param
 	\return 
@@ -175,7 +183,7 @@ protected:
   }
 
 	//--------------------------------------------------------//
-	//! 	
+	//! FIXME: Carlos, can you elaborate on the implementation?	
 	/*! 
 	\param
 	\return 
@@ -219,7 +227,7 @@ protected:
   }
 
 	//--------------------------------------------------------//
-	//! 	
+	//! FIXME: Carlos, can you elaborate on the implementation?	
 	/*! 
 	\param
 	\return 
@@ -259,10 +267,15 @@ protected:
   }
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Returns the hamiltonian term corresponding to coherent (FIXME: Carlos phrasing?) neutrino interactions (including decay).	
 	/*! 
-	\param
-	\return 
+	If iincoherent_int switch is set to false, then this returns only the Gamma matrix
+	corresponding to neutrino decay. If the switch is set to true, this function
+	returns the sum of the decay Gamma matrix and the earth absorption (FIXME: Carlos,
+	is that all?) term from squids.
+	\param ie is the energy index of the desired matrix.
+	\param irho is the neutrino/antineutrino index of the desired matrix, though the decay term is the same in each case.
+	\return the coherent interaction matrix.
 	*/
 
   squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
@@ -273,22 +286,38 @@ protected:
   }
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Returns the hamiltonian term corresponding to incoherent neutrino interactions (including decay regeneration).
 	/*! 
-	\param
-	\return 
+	If iincoherent_int switch is set to false, then this returns only the decay regeneration term. If set to true, this function returns the sum of the earth absorption "regeneration" (FIXME: Carlos phrasing) and the decay regeneration. The form of the decay regeneration term is given in the paper.
+	\param ie is the energy index of the desired matrix.
+	\param irho is the neutrino/antineutrino index of the desired matrix, though the decay term is the same in each case.
+	\return the incoherent interaction matrix. 
 	*/
 
   squids::SU_vector InteractionsRho(unsigned int ie, unsigned int irho) const {
     squids::SU_vector decay_regeneration(numneu);
+		//ie is the index of the daughter neutrino energy. Fetch the energy.
     double Ef = E_range[ie];
+		//Scanning through daughter neutrino mass states
     // i-daughter index
     for (size_t i = 0; i < numneu; i++) {
+			//Scanning through parent neutrino mass states
       // j-parent index
       for (size_t j = i + 1; j < numneu; j++) {
+				//Calculate parent-rest -- lab frame boost factor from daughter energy.
         double gamma = Ef/gsl_matrix_get(pstar_mat,i,j);
+				//Calculate parent neutrino energy 
         double E0 = NeutrinoMasses[j]*gamma;
+				//Finds the E_range energy closest to the calculated parent neutrino energy.
         size_t E0_index = nearest_element(E0);
+				/*
+				Determines expectation of parent mass state in E0_index energy bin given
+				the density matrix rho at the current time step. Multiplies this by the
+				parent-frame decay rate in the corresponding channel, modified by the time
+				dialation factor from the parent-lab frame gamma factor. Finally, this scalar
+				weight is multiplied by the daughter mass state projector in the daughter
+				energy bin. This is the "R" matrix in the hamiltonian specified in the paper.
+				*/
         decay_regeneration += (state[E0_index].rho[irho]
 					*evol_b0_proj[irho][j][E0_index])
 					*(gsl_matrix_get(rate_mat,i,j)/gamma)
@@ -296,6 +325,7 @@ protected:
       }
     }
 
+		//Switching earth absorption effects on and off.
     if (iincoherent_int)
       return nuSQUIDS::InteractionsRho(ie, irho) + decay_regeneration;
     else
@@ -305,10 +335,14 @@ protected:
 public:
 
 	//--------------------------------------------------------//
-	//! 	
+	//! nuSQUIDSDecay constructor.  	
 	/*! 
-	\param
-	\return 
+	Calls nuSQUIDS parent constructor and allocates memory for member
+	matrices.
+	\param e_nodes is the array of neutrino propagation energies.
+	\param numneu_ number of neutrino states in the system. Defaults to 3.
+	\param NT_ is the neutrino type from (neutrino/antineutrino). Defaults to both.	
+	\param iinteraction_ FIXME: Carlos: does this just get fed to the parent constructor? 
 	*/
 
   nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
@@ -317,6 +351,7 @@ public:
       : nuSQUIDS(e_nodes, numneu_, NT_, iinteraction_,
                  std::make_shared<
                      nusquids::NeutrinoDISCrossSectionsFromTablesExtended>()) {
+
     // just allocate some matrices
     DT_evol.resize(ne);
     for (int ei = 0; ei < ne; ei++) {
@@ -334,10 +369,9 @@ public:
   }
 
 	//--------------------------------------------------------//
-	//! 	
+	//! nuSQUIDSDecay destructor. 	
 	/*! 
-	\param
-	\return 
+	Freeing memory allocated to gsl_matrices.
 	*/
 
   ~nuSQUIDSDecay(){
@@ -346,13 +380,13 @@ public:
   }
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Fills the decay rate matrix rate_mat given a matrix tau of lifetimes. 	
 	/*! 
-	\param
-	\return 
+	\param tau is a gsl_matrix containing parent neutrino lifetimes in eV^-1. This matrix is strictly upper triangular. The column indicates the parent neutrino, and the row the daughter.
 	*/
 
   void SetDecayMatrix(gsl_matrix* tau){
+		//Perform some matrix dimension checks.
     if (rate_mat->size1 != tau->size1){
       throw std::runtime_error("size1 mismatch while constructing decay matrix.");
     }
@@ -360,7 +394,16 @@ public:
       throw std::runtime_error("size2 mismatch while constructing decay matrix.");
     }
 
+		//Zero out the elements of the rate matrix.
 	  gsl_matrix_set_zero(rate_mat);
+
+		/*
+		Setting each strictly upper-triangular decay rate to 1/lt, where lt is
+		the corresponding lifetime. The diagonal elements are used to construct
+		the decay Gamma matrix, so they contain the sum of the rates in each column.
+		That is to say, each diagonal initially corresponds to the total rate of 
+		depletion of the corresponding parent mass state. These entries are then multiplies
+		*/
 	  for (size_t col=0; col<numneu; col++)
 	  {
 	    double colrate=0;
@@ -464,6 +507,7 @@ public:
 		return PhiMass;
 	}
 
+}; // close class
 } // close nusquids namespace
 
 #endif // nusquidslv_h
