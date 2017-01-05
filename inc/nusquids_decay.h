@@ -41,32 +41,81 @@ namespace nusquids {
 
 class nuSQUIDSDecay : public nuSQUIDS {
 private:
+	//! A switch for incoherent interactions.
+	/*!
+	This does not control decay regeneration, although it is
+	an incoherent process. That is controlled by SetDecayRegeneration().
+	*/
   bool iincoherent_int = false;
+
+	//! A flag for setting the decay rate matrix.
   bool DecayParametersSet = false;
+
+	//! A flag for setting neutrino masses.
   bool NeutrinoMassesSet = false;
+	
+	//! A flag for setting neutrino masses.
   bool PhiMassSet = false;
 
 	//decay parameters: clean up! Remove from HDF5?
   squids::Const decay_parameters;
   std::vector<double> decay_strength;
+
+	//! The Gamma matrix from the paper.
   squids::SU_vector DT;
+	//! The Gamma matrix, in evolving basis.
   std::vector<squids::SU_vector> DT_evol;
 
+	//! The decay rate matrix.
+	/*!
+	Entries are calculated in SetDecayMatrix.
+	The matrix is upper-triangular. The strictly upper triangular 
+	elements are the decay rates from the mass state indexed by the
+	matrix column to the mass state indexed by the matrix row.
+	The diagonal elements are total decay rates from the mass state
+	indexed by the column to all daughters. These values are weighted
+	by parent mass to facilitate multiplication by a time-dialation factor.
+	*/
   gsl_matrix* rate_mat;
+
+	//! A matrix containing parent-frame momenta of daughter neutrinos.
+	/*!
+	Parent-daughter pair indexed by column-row pair, as in the case of
+	the rate matrix.
+	*/ 
 	gsl_matrix* pstar_mat;
 
+	//! A vector of neutrino masses.
   std::vector<double> NeutrinoMasses;
+	
+	//! Mass of the phi particle.
   double PhiMass;
+
+
+	//--------------------------------------------------------//
+	//! Calculates daughter neutrino momentum from neutrino and phi masses. 
+	/*! 
+	\param parent is the index of the parent neutrino mass state. This is a column index in the rate matrix rate_mat.
+	\param daughter is the index of the daughter neutrino mass state. This is a row index in the rate matrix rate_mat.
+	\return retval is the desired momentum.
+	*/
 
   double pstar(unsigned int daughter, unsigned int parent) const {
     if (NeutrinoMasses[parent] < NeutrinoMasses[daughter] + PhiMass) {
       throw std::runtime_error("non physical case");
     }
-    double retval = (1.0 / (2.0 * NeutrinoMasses[daughter])) *
-                    sqrt((pow(NeutrinoMasses[daughter], 2) - pow(NeutrinoMasses[parent] + PhiMass, 2)) *
-                         (pow(NeutrinoMasses[daughter], 2) - pow(NeutrinoMasses[parent] - PhiMass, 2)));
+    double retval = (1.0 / (2.0 * NeutrinoMasses[parent])) *
+                    sqrt((pow(NeutrinoMasses[parent], 2) - pow(NeutrinoMasses[daughter] + PhiMass, 2)) *
+                         (pow(NeutrinoMasses[parent], 2) - pow(NeutrinoMasses[daughter] - PhiMass, 2)));
     return retval;
   }
+
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
 
 	void PreComputePstarMat(void){
     if (!NeutrinoMassesSet)
@@ -84,6 +133,12 @@ private:
 		}
 	}
 
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
 
   unsigned int nearest_element(double value) const {
     std::vector<double> diffs(E_range.size());
@@ -96,6 +151,14 @@ private:
   }
 
 protected:
+
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
   void AddToPreDerive(double x) {
     if (!DecayParametersSet)
       throw std::runtime_error("decay parameters not set");
@@ -110,6 +173,13 @@ protected:
       DT_evol[ei] = DT.Evolve(h0, (x - Get_t_initial()));
     }
   }
+
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
 
   void AddToWriteHDF5(hid_t hdf5_loc_id) const {
     // here we write the new parameters to be saved in the HDF5 file
@@ -148,6 +218,13 @@ protected:
     }
   }
 
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
   void AddToReadHDF5(hid_t hdf5_loc_id) {
     // read and set mixing parameters
     for (unsigned int i = 0; i < numneu; i++) {
@@ -181,12 +258,26 @@ protected:
     //Set_Decay_Matrix(decay_parameters, decay_strength);
   }
 
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
   squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
       return DT_evol[ie] * (0.5 / E_range[ie]);
   }
+
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
 
   squids::SU_vector InteractionsRho(unsigned int ie, unsigned int irho) const {
     squids::SU_vector decay_regeneration(numneu);
@@ -195,7 +286,6 @@ protected:
     for (size_t i = 0; i < numneu; i++) {
       // j-parent index
       for (size_t j = i + 1; j < numneu; j++) {
-				std::cout << "Matrx Pstar: " << gsl_matrix_get(pstar_mat,i,j) << std::endl;
         double gamma = Ef/gsl_matrix_get(pstar_mat,i,j);
         double E0 = NeutrinoMasses[j]*gamma;
         size_t E0_index = nearest_element(E0);
@@ -213,6 +303,14 @@ protected:
   }
 
 public:
+
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
   nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
                 NeutrinoType NT_ = NeutrinoType::both,
                 bool iinteraction_ = true)
@@ -235,10 +333,24 @@ public:
     pstar_mat = gsl_matrix_alloc(numneu,numneu);
   }
 
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
   ~nuSQUIDSDecay(){
     gsl_matrix_free(rate_mat);
     gsl_matrix_free(pstar_mat);
   }
+
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
 
   void SetDecayMatrix(gsl_matrix* tau){
     if (rate_mat->size1 != tau->size1){
@@ -270,12 +382,41 @@ public:
     DecayParametersSet=true;
   }
 
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
 
 	gsl_matrix* GetDecayMatrix(void){
 		return rate_mat;
 	}
 
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
   void SetIncoherentInteractions(bool opt) { iincoherent_int = opt; }
+
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
+  void SetDecayRegeneration(bool opt) { Set_OtherRhoTerms(opt); }
+
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
 
 	void SetNeutrinoMasses(double lightmass){
 		NeutrinoMasses[0] = lightmass;
@@ -286,6 +427,12 @@ public:
 		PreComputePstarMat();
 	}
 		
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
 
 	double GetNeutrinoMass(unsigned int index){
     if (index>=numneu){
@@ -294,47 +441,28 @@ public:
 		return NeutrinoMasses[index];
 	}
 
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
 	void SetPhiMass(double PhiMass_){
 		PhiMass = PhiMass_;
 		PhiMassSet=true;
 	}
 
+	//--------------------------------------------------------//
+	//! 	
+	/*! 
+	\param
+	\return 
+	*/
+
 	double GetPhiMass(void){
 		return PhiMass;
 	}
-
-
-  void printmat(const squids::SU_vector mat, unsigned int dim,
-                std::string mname) const {
-    std::cout << "Matrix: " << mname << std::endl;
-
-    unsigned int i, j;
-
-    for (i = 0; i < dim; i++) {
-      for (j = 0; j < dim; j++) {
-        std::cout << (mat)[j + dim * i] << " ";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-  }
-
-
-  void printgslmat(const gsl_matrix* mat, unsigned int dim,
-                std::string mname) const {
-    std::cout << "Matrix: " << mname << std::endl;
-
-    unsigned int i, j;
-
-    for (i = 0; i < dim; i++) {
-      for (j = 0; j < dim; j++) {
-        std::cout << gsl_matrix_get(mat,i,j) << " ";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-  }
-};
 
 } // close nusquids namespace
 
