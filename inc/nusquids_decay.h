@@ -59,7 +59,7 @@ private:
 	//! A flag for setting neutrino masses.
   bool PhiMassSet = false;
 
-	//decay parameters: clean up! Remove from HDF5?
+	//decay parameters: FIXME clean up! Remove from HDF5?
   squids::Const decay_parameters;
   std::vector<double> decay_strength;
 
@@ -75,8 +75,7 @@ private:
 	elements are the decay rates from the mass state indexed by the
 	matrix column to the mass state indexed by the matrix row.
 	The diagonal elements are total decay rates from the mass state
-	indexed by the column to all daughters. These values are weighted
-	by parent mass to facilitate multiplication by a time-dialation factor.
+	indexed by the column to all daughters. 	
 	*/
   gsl_matrix* rate_mat;
 
@@ -267,18 +266,24 @@ protected:
   }
 
 	//--------------------------------------------------------//
-	//! Returns the hamiltonian term corresponding to coherent (FIXME: Carlos phrasing?) neutrino interactions (including decay).	
+	//! Returns the hamiltonian term corresponding to the Gamma matrix with additional interaction terms (can be switched on or off) described in the nuSQUIDS documentation under "GammaRho".
 	/*! 
 	If iincoherent_int switch is set to false, then this returns only the Gamma matrix
 	corresponding to neutrino decay. If the switch is set to true, this function
-	returns the sum of the decay Gamma matrix and the earth absorption (FIXME: Carlos,
-	is that all?) term from squids.
+	returns the sum of the decay Gamma matrix and additional neutrino-matter
+	interactions described in the nuSQUIDS documentation.
 	\param ie is the energy index of the desired matrix.
 	\param irho is the neutrino/antineutrino index of the desired matrix, though the decay term is the same in each case.
-	\return the coherent interaction matrix.
+	\return the decay/interaction matrix.
 	*/
 
   squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
+		//Toggling additional interaction terms.
+		/*
+		In each case, the 1/E divides the neutrino mass weighting applied in
+		SetDecayMatrix() to DT. m/E=gamma, the time dilation factor, which 
+		suppresses lab-frame decay rates.
+		*/
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
@@ -286,9 +291,9 @@ protected:
   }
 
 	//--------------------------------------------------------//
-	//! Returns the hamiltonian term corresponding to incoherent neutrino interactions (including decay regeneration).
+	//! Returns the hamiltonian term corresponding to neutrino regeneration from interactions. This includes decay regeneration, as well as additional interaction regeneration terms which can be toggled on or off.
 	/*! 
-	If iincoherent_int switch is set to false, then this returns only the decay regeneration term. If set to true, this function returns the sum of the earth absorption "regeneration" (FIXME: Carlos phrasing) and the decay regeneration. The form of the decay regeneration term is given in the paper.
+	If iincoherent_int switch is set to false, then this returns only the decay regeneration term. If set to true, this function returns the sum of additional interaction regeneration terms and the decay regeneration. The form of the decay regeneration term is given in the paper as the "R" matrix, while the additional interaction regeneration terms are described in the nuSQUIDS documentation under "InteractionsRho".
 	\param ie is the energy index of the desired matrix.
 	\param irho is the neutrino/antineutrino index of the desired matrix, though the decay term is the same in each case.
 	\return the incoherent interaction matrix. 
@@ -325,7 +330,7 @@ protected:
       }
     }
 
-		//Switching earth absorption effects on and off.
+		//Toggling additional regeneration terms.
     if (iincoherent_int)
       return nuSQUIDS::InteractionsRho(ie, irho) + decay_regeneration;
     else
@@ -402,7 +407,7 @@ public:
 		the corresponding lifetime. The diagonal elements are used to construct
 		the decay Gamma matrix, so they contain the sum of the rates in each column.
 		That is to say, each diagonal initially corresponds to the total rate of 
-		depletion of the corresponding parent mass state. These entries are then multiplies
+		depletion of the corresponding parent mass state.
 		*/
 	  for (size_t col=0; col<numneu; col++)
 	  {
@@ -411,14 +416,21 @@ public:
 	    {
 	      double rate = 1.0/gsl_matrix_get(tau,row,col);
 	      gsl_matrix_set(rate_mat,row,col,rate);
-	      colrate+=rate*NeutrinoMasses[col];
+	      colrate+=rate;
 	    }
 	    gsl_matrix_set(rate_mat,col,col,colrate);
 		}
 
+
+		/*
+		Constructing the initial Gamma decay matrix. The matrix is the sum of the 
+		mass-basis projectors times the corresponding neutrino mass. The mass
+		weighting factor is divided by the neutrino energy in GammaRho() yield a time
+		dilation factor.
+		*/
     DT = squids::SU_vector(numneu);
     for(size_t i = 0; i < numneu; i++){
-      double entry = gsl_matrix_get(rate_mat,i,i);
+      double entry = NeutrinoMasses[i]*gsl_matrix_get(rate_mat,i,i);
       DT += entry*squids::SU_vector::Projector(numneu, i);
     }
 
@@ -426,10 +438,9 @@ public:
   }
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Returns the matrix of lifetimes, rate_mat. 	
 	/*! 
-	\param
-	\return 
+	\return rate_mat: the lifetime matrix. 
 	*/
 
 	gsl_matrix* GetDecayMatrix(void){
@@ -437,32 +448,57 @@ public:
 	}
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Toggles additional neutrino interactions.	
 	/*! 
-	\param
-	\return 
+			The switch, iincoherent_int, toggles additional interactions
+			in both GammaRho() and InteractionsRho(). These interactions are
+			described in the nuSQUIDS documentation under the corresponding
+			function names. If the switch is set to true, these terms are 
+			added to the decay Gamma matrix and decay "R" matrix. If set 
+			to false, then the only interaction in play is neutrino decay.
+	\param opt: the boolean value to toggle interactions.
 	*/
 
   void SetIncoherentInteractions(bool opt) { iincoherent_int = opt; }
 
 	//--------------------------------------------------------//
-	//! 	
-	/*! 
-	\param
-	\return 
+	//! Toggles decay regeneration. 	
+	/*!
+			The switch is internal to SQUIDS/nuSQUIDS. If set to true, the 
+			terms returned by InteractionsRho() are present in the evolution
+			equation. If not, there is no regeneration. It is perhaps helpful
+			to include a truth table below.
+			iincoherent_int | OtherRhoTerms | Physics
+			--------------- | ------------- | -------------------------------
+			True            | True          | All terms included. 
+			True            | False         | Gamma + R only (decay with decay regen).
+			False           | True          | Gamma + nuSQUIDS GammaRho, no regen.
+			False           | False         | Gamma only (decay only without regen).
+	\param opt: the boolean value to toggle regeneration.
 	*/
 
   void SetDecayRegeneration(bool opt) { Set_OtherRhoTerms(opt); }
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Sets neutrino masses given splittings and the lightest mass. 	
 	/*! 
-	\param
-	\return 
+			One must call SetPhiMass before calling this function! PreComputePstarMat()
+			is called before the function terminates, and it requires a phi mass.
+			The mass splittings must be set before calling this function.
+			Default splittings will be used if they are not set.
+	\param lightmass is the lightest neutrino mass.
 	*/
 
 	void SetNeutrinoMasses(double lightmass){
+    if (!PhiMassSet){
+      throw std::runtime_error("Phi mass not set. Set phi mass before setting neutrino masses.");
+    }
+		//Set the first mass to lightmass.
 		NeutrinoMasses[0] = lightmass;
+		/*
+		Calculate the ith mass using the (i-1)th mass and the corresponding
+		mass-squared splitting.
+		*/
 		for (unsigned int i=1; i<numneu; i++){
 			NeutrinoMasses[i] = sqrt(Get_SquareMassDifference(i) + NeutrinoMasses[0]*NeutrinoMasses[0]);
 		}
@@ -471,13 +507,14 @@ public:
 	}
 		
 	//--------------------------------------------------------//
-	//! 	
+	//! Gets the neutrino mass corresponding to the given state index. 	
 	/*! 
-	\param
-	\return 
+	\param index is the index of the desired mass state.
+	\return NeutrinoMasses[index] is the corresponding neutrino mass.
 	*/
 
 	double GetNeutrinoMass(unsigned int index){
+		//Check that the requested index is not out of range.
     if (index>=numneu){
       throw std::runtime_error("Index larger than numneu-1");
     }
@@ -485,10 +522,10 @@ public:
 	}
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Sets the mass of the phi particle.	
 	/*! 
-	\param
-	\return 
+			This function must be called before SetNeutrinoMasses().
+	\param PhiMass_ is the provided mass of the phi particle.
 	*/
 
 	void SetPhiMass(double PhiMass_){
@@ -497,15 +534,34 @@ public:
 	}
 
 	//--------------------------------------------------------//
-	//! 	
+	//! Gets the mass of the phi particle.
 	/*! 
-	\param
-	\return 
+	\return PhiMass is the mass of the phi particle. 
 	*/
 
 	double GetPhiMass(void){
 		return PhiMass;
 	}
+
+
+	//Testing function -- FIXME: remove before release.
+  void printmat(const squids::SU_vector mat, unsigned int dim,
+                std::string mname) const {
+    std::cout << "Matrix: " << mname << std::endl;
+
+    unsigned int i, j;
+
+    for (i = 0; i < dim; i++) {
+      for (j = 0; j < dim; j++) {
+        std::cout << (mat)[j + dim * i] << " ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+
+
 
 }; // close class
 } // close nusquids namespace
