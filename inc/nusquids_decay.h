@@ -157,6 +157,25 @@ private:
                          std::min_element(diffs.begin(), diffs.end()));
   }
 
+
+	//--------------------------------------------------------//
+	//! Constructs the Gamma decay matrix using rate_mat.	
+	/*! 
+		Constructing the initial Gamma decay matrix. The matrix is the sum of the 
+		mass-basis projectors times the corresponding neutrino mass. The mass
+		weighting factor is divided by the neutrino energy in GammaRho() yield a time
+		dilation factor.
+	*/
+
+	void ConstructGammaMatrix(void){
+    DT = squids::SU_vector(numneu);
+    for(size_t i = 0; i < numneu; i++){
+      double entry = NeutrinoMasses[i]*gsl_matrix_get(rate_mat,i,i);
+      DT += entry*squids::SU_vector::Projector(numneu, i);
+   }
+
+
+
 protected:
 
 	//--------------------------------------------------------//
@@ -193,18 +212,58 @@ protected:
     hsize_t dim[1]{1};
 
     // creating arrays to save stuff
-    H5LTmake_dataset(hdf5_loc_id, "decay_strength", 1, dim, H5T_NATIVE_DOUBLE,
+    H5LTmake_dataset(hdf5_loc_id, "rate_matrix", 1, dim, H5T_NATIVE_DOUBLE,
                      0);
-    H5LTmake_dataset(hdf5_loc_id, "mixing_angles", 1, dim, H5T_NATIVE_DOUBLE,
+    H5LTmake_dataset(hdf5_loc_id, "phi_mass", 1, dim, H5T_NATIVE_DOUBLE,
                      0);
-    H5LTmake_dataset(hdf5_loc_id, "CP_phases", 1, dim, H5T_NATIVE_DOUBLE, 0);
+    H5LTmake_dataset(hdf5_loc_id, "lightest_nu_mass", 1, dim, H5T_NATIVE_DOUBLE,
+                     0);
+    //H5LTmake_dataset(hdf5_loc_id, "mixing_angles", 1, dim, H5T_NATIVE_DOUBLE,
+    //                 0);
+    //H5LTmake_dataset(hdf5_loc_id, "CP_phases", 1, dim, H5T_NATIVE_DOUBLE, 0);
 
-    // save decay strength
+
+		// save phi mass	
+		std::string phi_mass_label = "phimass";
+		h5ltset_attribute_double(hdf5_loc_id, "phi_mass",
+														 phi_mass_label.c_str(),
+														 &(phimass), 1);
+
+		// save lightest neutrino mass	
+		std::string light_mass_label = "lightmass";
+		h5ltset_attribute_double(hdf5_loc_id, "lightest_nu_mass",
+														 light_mass_label.c_str(),
+														 &(NeutrinoMasses[0]), 1);
+
+    // save decay rate matrix 
+    for (unsigned int i = 0; i < numneu; i++) {
+      for (unsigned int j = i; j < numneu; j++) {
+        std::string rate_label =
+            "rate" + std::to_string(i + 1) + std::to_string(j + 1);
+        double rate_value = gsl_matrix_get(rate_mat,i,j);
+        H5LTset_attribute_double(hdf5_loc_id, "rate_matrix", rate_label.c_str(),
+                                 &rate_value, 1);
+      }
+    }
+
+
+		/*
+    // save neturino mass splittings
+		std::vector<double> dm2_vec(numneu-1);
+    for (size_t i = 0; i < numneu-1; i++) {
+			dm2_vec[i] = Get_SquareMassDifference(i+1);
+      std::string neutrino_dm2_label = "dm2" + std::to_string(i+1);
+      H5LTset_attribute_double(hdf5_loc_id, "MassSquaredSplittings",
+                               neutrino_dm2_label.c_str(),
+                               &(dm2_vec[i]), 1);
+    }
+
+    // save neturino masses
     for (size_t i = 0; i < numneu; i++) {
-      std::string decay_strength_label = "lam" + std::to_string(i + 1);
-      H5LTset_attribute_double(hdf5_loc_id, "decay_strength",
+      std::string neutrino_masses_label = "numass" + std::to_string(i + 1);
+      H5LTset_attribute_double(hdf5_loc_id, "NeutrinoMasses",
                                decay_strength_label.c_str(),
-                               &(decay_strength[i]), 1);
+                               &(NeutrinoMasses[i]), 1);
     }
 
     // save decay mixing angles
@@ -223,6 +282,8 @@ protected:
                                  &delta_value, 1);
       }
     }
+		*/
+
   }
 
 	//--------------------------------------------------------//
@@ -233,6 +294,38 @@ protected:
 	*/
 
   void AddToReadHDF5(hid_t hdf5_loc_id) {
+    // read and set decay rates 
+    for (unsigned int i = 0; i < numneu; i++) {
+      for (unsigned int j = i; j < numneu; j++) {
+        double rate_value;
+        std::string rate_label =
+            "rate" + std::to_string(i + 1) + std::to_string(j + 1);
+        H5LTget_attribute_double(hdf5_loc_id, "rate_matrix", th_label.c_str(),
+                                 &rate_value);
+				gsl_matrix_set(rate_mat,i,j,rate_value);
+      }
+    }
+
+		//Construct the gamma matrix from rate_mat
+		ConstructGammaMatrix();
+
+    DecayParametersSet=true;
+
+		// read and set phi mass
+		std::string phi_mass_label = "phimass";
+		H5LTget_attribute_double(hdf5_loc_id, "phi_mass",
+														 phi_mass_label.c_str(),
+														 &PhiMass);
+		// read and set lightest neutrino mass
+		double lightmass;
+		std::string light_mass_label = "lightmass";
+		H5LTget_attribute_double(hdf5_loc_id, "lightest_nu_mass",
+														 light_mass_label.c_str(),
+														 &lightmass);
+		// calculate neutrino masses using the lightest mass and splittings.
+		SetNeutrinoMasses(lightmass);
+
+		/*
     // read and set mixing parameters
     for (unsigned int i = 0; i < numneu; i++) {
       for (unsigned int j = i + 1; j < numneu; j++) {
@@ -251,18 +344,8 @@ protected:
         decay_parameters.SetPhase(i, j, delta_value);
       }
     }
+		*/
 
-    // strength vector reset
-    decay_strength = std::vector<double>(numneu);
-    for (size_t i = 0; i < numneu; i++) {
-      std::string decay_strength_label = "lam" + std::to_string(i + 1);
-      H5LTget_attribute_double(hdf5_loc_id, "decay_strength",
-                               decay_strength_label.c_str(),
-                               &(decay_strength[i]));
-    }
-
-	//FIXME
-    //Set_Decay_Matrix(decay_parameters, decay_strength);
   }
 
 	//--------------------------------------------------------//
@@ -421,18 +504,8 @@ public:
 	    gsl_matrix_set(rate_mat,col,col,colrate);
 		}
 
-
-		/*
-		Constructing the initial Gamma decay matrix. The matrix is the sum of the 
-		mass-basis projectors times the corresponding neutrino mass. The mass
-		weighting factor is divided by the neutrino energy in GammaRho() yield a time
-		dilation factor.
-		*/
-    DT = squids::SU_vector(numneu);
-    for(size_t i = 0; i < numneu; i++){
-      double entry = NeutrinoMasses[i]*gsl_matrix_get(rate_mat,i,i);
-      DT += entry*squids::SU_vector::Projector(numneu, i);
-    }
+		//Construct the gamma matrix from rate_mat
+		ConstructGammaMatrix();
 
     DecayParametersSet=true;
   }
