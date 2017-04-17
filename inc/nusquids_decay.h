@@ -303,11 +303,6 @@ protected:
 		suppresses lab-frame decay rates.
 		*/
 
-		//FIXME Testing
-		std::cout << "IE: " << ie << std::endl;
-		printmat(DT_evol[ie],numneu,"DT_EVOL[ie]");
-		printgslmat(rate_mat,numneu,"RATE MATRIX");
-
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
@@ -556,42 +551,6 @@ public:
 	double GetPhiMass(void){
 		return PhiMass;
 	}
-
-
-	//Testing function -- FIXME: remove before release.
-  void printmat(const squids::SU_vector mat, unsigned int dim,
-                std::string mname) const {
-    std::cout << "Matrix: " << mname << std::endl;
-
-    unsigned int i, j;
-
-    for (i = 0; i < dim; i++) {
-      for (j = 0; j < dim; j++) {
-        std::cout << (mat)[j + dim * i] << " ";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-  }
-
-	//Testing function -- FIXME: remove before release.
-  void printgslmat(gsl_matrix* mat, unsigned int dim,
-                std::string mname) const {
-    std::cout << "Matrix: " << mname << std::endl;
-
-    unsigned int i, j;
-
-    for (i = 0; i < dim; i++) {
-      for (j = 0; j < dim; j++) {
-        std::cout << gsl_matrix_get(mat,i,j) << " ";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-  }
-
-
-
 
 }; // close class
 } // close nusquids namespace
