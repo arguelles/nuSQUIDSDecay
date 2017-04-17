@@ -168,12 +168,12 @@ private:
 	*/
 
 	void ConstructGammaMatrix(void){
-    DT = squids::SU_vector(numneu);
-    for(size_t i = 0; i < numneu; i++){
-      double entry = NeutrinoMasses[i]*gsl_matrix_get(rate_mat,i,i);
-      DT += entry*squids::SU_vector::Projector(numneu, i);
-   }
-
+		DT = squids::SU_vector(numneu);
+		for(size_t i = 0; i < numneu; i++){
+			double entry = NeutrinoMasses[i]*gsl_matrix_get(rate_mat,i,i);
+			DT += entry*squids::SU_vector::Projector(numneu, i);
+		}
+	}
 
 
 protected:
@@ -218,22 +218,6 @@ protected:
                      0);
     H5LTmake_dataset(hdf5_loc_id, "lightest_nu_mass", 1, dim, H5T_NATIVE_DOUBLE,
                      0);
-    //H5LTmake_dataset(hdf5_loc_id, "mixing_angles", 1, dim, H5T_NATIVE_DOUBLE,
-    //                 0);
-    //H5LTmake_dataset(hdf5_loc_id, "CP_phases", 1, dim, H5T_NATIVE_DOUBLE, 0);
-
-
-		// save phi mass	
-		std::string phi_mass_label = "phimass";
-		h5ltset_attribute_double(hdf5_loc_id, "phi_mass",
-														 phi_mass_label.c_str(),
-														 &(phimass), 1);
-
-		// save lightest neutrino mass	
-		std::string light_mass_label = "lightmass";
-		h5ltset_attribute_double(hdf5_loc_id, "lightest_nu_mass",
-														 light_mass_label.c_str(),
-														 &(NeutrinoMasses[0]), 1);
 
     // save decay rate matrix 
     for (unsigned int i = 0; i < numneu; i++) {
@@ -246,44 +230,17 @@ protected:
       }
     }
 
+		// save phi mass	
+		std::string phi_mass_label = "phimass";
+		H5LTset_attribute_double(hdf5_loc_id, "phi_mass",
+														 phi_mass_label.c_str(),
+														 &PhiMass, 1);
 
-		/*
-    // save neturino mass splittings
-		std::vector<double> dm2_vec(numneu-1);
-    for (size_t i = 0; i < numneu-1; i++) {
-			dm2_vec[i] = Get_SquareMassDifference(i+1);
-      std::string neutrino_dm2_label = "dm2" + std::to_string(i+1);
-      H5LTset_attribute_double(hdf5_loc_id, "MassSquaredSplittings",
-                               neutrino_dm2_label.c_str(),
-                               &(dm2_vec[i]), 1);
-    }
-
-    // save neturino masses
-    for (size_t i = 0; i < numneu; i++) {
-      std::string neutrino_masses_label = "numass" + std::to_string(i + 1);
-      H5LTset_attribute_double(hdf5_loc_id, "NeutrinoMasses",
-                               decay_strength_label.c_str(),
-                               &(NeutrinoMasses[i]), 1);
-    }
-
-    // save decay mixing angles
-    for (unsigned int i = 0; i < numneu; i++) {
-      for (unsigned int j = i + 1; j < numneu; j++) {
-        std::string th_label =
-            "th" + std::to_string(i + 1) + std::to_string(j + 1);
-        double th_value = decay_parameters.GetMixingAngle(i, j);
-        H5LTset_attribute_double(hdf5_loc_id, "mixing_angles", th_label.c_str(),
-                                 &th_value, 1);
-
-        std::string delta_label =
-            "delta" + std::to_string(i + 1) + std::to_string(j + 1);
-        double delta_value = decay_parameters.GetPhase(i, j);
-        H5LTset_attribute_double(hdf5_loc_id, "CP_phases", delta_label.c_str(),
-                                 &delta_value, 1);
-      }
-    }
-		*/
-
+		// save lightest neutrino mass	
+		std::string light_mass_label = "lightmass";
+		H5LTset_attribute_double(hdf5_loc_id, "lightest_nu_mass",
+														 light_mass_label.c_str(),
+														 &(NeutrinoMasses[0]), 1);
   }
 
 	//--------------------------------------------------------//
@@ -300,7 +257,7 @@ protected:
         double rate_value;
         std::string rate_label =
             "rate" + std::to_string(i + 1) + std::to_string(j + 1);
-        H5LTget_attribute_double(hdf5_loc_id, "rate_matrix", th_label.c_str(),
+        H5LTget_attribute_double(hdf5_loc_id, "rate_matrix", rate_label.c_str(),
                                  &rate_value);
 				gsl_matrix_set(rate_mat,i,j,rate_value);
       }
@@ -324,28 +281,6 @@ protected:
 														 &lightmass);
 		// calculate neutrino masses using the lightest mass and splittings.
 		SetNeutrinoMasses(lightmass);
-
-		/*
-    // read and set mixing parameters
-    for (unsigned int i = 0; i < numneu; i++) {
-      for (unsigned int j = i + 1; j < numneu; j++) {
-        double th_value;
-        std::string th_label =
-            "th" + std::to_string(i + 1) + std::to_string(j + 1);
-        H5LTget_attribute_double(hdf5_loc_id, "mixing_angles", th_label.c_str(),
-                                 &th_value);
-        decay_parameters.SetMixingAngle(i, j, th_value);
-
-        double delta_value;
-        std::string delta_label =
-            "delta" + std::to_string(i + 1) + std::to_string(j + 1);
-        H5LTget_attribute_double(hdf5_loc_id, "CP_phases", delta_label.c_str(),
-                                 &delta_value);
-        decay_parameters.SetPhase(i, j, delta_value);
-      }
-    }
-		*/
-
   }
 
 	//--------------------------------------------------------//
@@ -367,6 +302,12 @@ protected:
 		SetDecayMatrix() to DT. m/E=gamma, the time dilation factor, which 
 		suppresses lab-frame decay rates.
 		*/
+
+		//FIXME Testing
+		std::cout << "IE: " << ie << std::endl;
+		printmat(DT_evol[ie],numneu,"DT_EVOL[ie]");
+		printgslmat(rate_mat,numneu,"RATE MATRIX");
+
     if (iincoherent_int)
       return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
     else
@@ -541,12 +482,12 @@ public:
 			terms returned by InteractionsRho() are present in the evolution
 			equation. If not, there is no regeneration. It is perhaps helpful
 			to include a truth table below.
-			iincoherent_int | OtherRhoTerms | Physics
-			--------------- | ------------- | -------------------------------
-			True            | True          | All terms included. 
-			True            | False         | Gamma + R only (decay with decay regen).
-			False           | True          | Gamma + nuSQUIDS GammaRho, no regen.
-			False           | False         | Gamma only (decay only without regen).
+			iincoherent_int | DecayRegeneration | Physics
+			--------------- | ----------------- | -------------------------------
+			True            | True              | All terms included. 
+			True            | False             | All except regeneration terms.
+			False           | True              | Gamma + R (decay with regen only).
+			False           | False             | Gamma only (decay only without regen).
 	\param opt: the boolean value to toggle regeneration.
 	*/
 
@@ -627,6 +568,22 @@ public:
     for (i = 0; i < dim; i++) {
       for (j = 0; j < dim; j++) {
         std::cout << (mat)[j + dim * i] << " ";
+      }
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+  }
+
+	//Testing function -- FIXME: remove before release.
+  void printgslmat(gsl_matrix* mat, unsigned int dim,
+                std::string mname) const {
+    std::cout << "Matrix: " << mname << std::endl;
+
+    unsigned int i, j;
+
+    for (i = 0; i < dim; i++) {
+      for (j = 0; j < dim; j++) {
+        std::cout << gsl_matrix_get(mat,i,j) << " ";
       }
       std::cout << std::endl;
     }
