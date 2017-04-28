@@ -4,6 +4,7 @@ CFLAGS= -O3 -fPIC -std=c++11
 #CFLAGS+= -g -fsanitize=address
 CFLAGS+= -I./inc -I/home/carguelles/work/NeutrinoDecay/verosimilitud/inc  `pkg-config --cflags squids nusquids hdf5`
 LDFLAGS+= `pkg-config --libs squids nusquids hdf5`
+LDFLAGS+= -lverosimilitud
 LDFLAGS+=-lsupc++
 
 all: mains/exCross.o mains/run_decay mains/run_analysis mains/run_decay_constant_density mains/run_decay_constant_density_with_decay
