@@ -160,9 +160,6 @@ protected:
                                decay_strength_label.c_str(),
                                &(decay_strength[i]));
     }
-
-	//FIXME
-    //Set_Decay_Matrix(decay_parameters, decay_strength);
   }
 
   squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
@@ -269,6 +266,13 @@ public:
 
     // allocating memory for rate matrix
     rate_mat = gsl_matrix_alloc(numneu,numneu);
+  }
+
+  nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
+                NeutrinoType NT_ = NeutrinoType::both,
+                bool iinteraction_ = true, gsl_matrix * decay_matrix_, std::vector<double> m_nu, double m_phi):
+    nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_),m_nu(m_nu),m_phi(m_phi){
+      Set_Decay_Matrix(decay_matrix);
   }
 
   ~nuSQUIDSDecay(){

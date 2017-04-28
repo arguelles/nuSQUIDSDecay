@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
   double m1 = 0.0;
   double m2 = sqrt(nusqdec.Get_SquareMassDifference(1));
   double m3 = sqrt(nusqdec.Get_SquareMassDifference(2));
-  double m4 = 1.0;
+  double m4 = sqrt(10.0);
   double mphi = 0.0;
 
   std::vector<double> nu_mass(numneu);
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
   gsl_matrix_set_all(tau_mat, 1e60); // Set lifetimes to effective stability.
 
 	//Setting for 4 neutrino case with stable nu_1.
-  double lifetime = 1.0e2;
+  double lifetime = 1.0e0;
   gsl_matrix_set(tau_mat,0,3,lifetime); //tau_41
   gsl_matrix_set(tau_mat,1,3,lifetime); //tau_42
   gsl_matrix_set(tau_mat,2,3,lifetime); //tau_43
