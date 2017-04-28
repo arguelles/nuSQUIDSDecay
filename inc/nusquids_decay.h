@@ -180,9 +180,8 @@ protected:
     double E0;
     size_t E0_index;
     double my_pstar;
-	double gamma;
+    double gamma;
 
-    //printmat(decay_regeneration, numneu, "DCY_REGEN");
     // i-daughter index
     for (size_t i = 0; i < numneu; i++) {
       // j-parent index
@@ -195,49 +194,6 @@ protected:
                               (state[E0_index].rho[irho]*evol_b0_proj[irho][j][E0_index])*
                               (gsl_matrix_get(rate_mat,i,j)/gamma)*
                               (evol_b0_proj[irho][i][ie]);
-
-        //---------Testing trace functionality---------//
-
-        /*
-        std::vector<double> rhocomps =
-            (state[E0_index].rho[irho]).GetComponents();
-
-        std::cout << "rhocomps: " << std::endl;
-        unsigned int l;
-        for (l = 0; l < rhocomps.size(); l++) {
-          std::cout << rhocomps[l] << " ";
-        }
-        std::cout << std::endl;
-
-        std::vector<double> projcomps =
-            (evol_b0_proj[irho][i][E0_index]).GetComponents();
-
-        std::cout << "projcomps: " << std::endl;
-        for (l = 0; l < projcomps.size(); l++) {
-          std::cout << projcomps[l] << " ";
-        }
-        std::cout << std::endl;
-
-        unsigned int k;
-        for (k = 0; k < numneu; k++) {
-          std::cout << k << " " << m_nu[k] << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "i,j: "
-                  << "(" << i << " , " << j << ")" << std::endl;
-        std::cout << "PHIMASS : " << m_phi << std::endl;
-        std::cout << "E0 : " << E0 << std::endl;
-        std::cout << "E0closest : " << E_range[E0_index] << std::endl;
-        std::cout << "E0closestp1 : " << E_range[E0_index + 1] << std::endl;
-        std::cout << "E0closestm1 : " << E_range[E0_index - 1] << std::endl;
-        std::cout << "Ef : " << E_range[ie] << std::endl;
-        //std::cout << "Pstar : " << pstar(i, j) << std::endl;
-        printmat(DT_evol[ie], numneu, "DTEVOL");
-        printmat(state[E0_index].rho[irho], numneu, "RHOMATRIX");
-        printmat(evol_b0_proj[irho][i][E0_index], numneu, "MASSPROJ:I");
-        printmat(evol_b0_proj[irho][j][E0_index], numneu, "MASSPROJ:J");
-        printmat(decay_regeneration, numneu, "DCY_REGEN");
-        */
       }
     }
 
@@ -281,6 +237,21 @@ public:
     gsl_matrix_free(rate_mat);
   }
 
+  // move constructor
+  nuSQUIDSDecay(nuSQUIDSDecay&& other):
+  nuSQUIDS(std::move(other)),
+  iincoherent_int(other.iincoherent_int),
+  decay_parameters_set(other.decay_parameters_set),
+  decay_parameters(std::move(other.decay_parameters)),
+  decay_strength(other.decay_strength),
+  DT(other.DT),
+  DT_evol(other.DT_evol),
+  m_nu(other.m_nu),
+  m_phi(other.m_phi)
+  {
+    gsl_matrix_memcpy(rate_mat,other.rate_mat);
+  }
+
   void Set_Decay_Matrix(gsl_matrix* m){
 
     if (rate_mat->size1 != m->size1){
@@ -289,24 +260,6 @@ public:
     if (rate_mat->size2 != m->size2){
       throw std::runtime_error("size2 mismatch while constructing decay matrix.");
     }
-
-    /*
-    double colsum;
-    for (size_t col=0; col<m->size2; col++)
-    {
-        colsum=0;
-
-        for (size_t row=0; row<col; row++)
-        {
-            colsum+=gsl_matrix_get(m,row,col);
-        }
-
-      if (!close_enough(gsl_matrix_get(m,col,col),colsum))
-      {
-        throw std::runtime_error("Off-diagonal decay rates do not sum to diagonal rates.");
-      }
-    }
-    */
 
     gsl_matrix_memcpy(rate_mat,m);
 
