@@ -16,7 +16,7 @@ mains/run_decay : mains/run_decay.cpp mains/exCross.o inc/nusquids_decay.h
 	@ $(CXX) $(CFLAGS) mains/run_decay.cpp mains/exCross.o  -o $@ $(LDFLAGS)
 
 mains/run_analysis: mains/run_analysis.cpp mains/exCross.o inc/nusquids_decay.h
-	@echo Compiling run_decay
+	@echo Compiling run_analysis
 	@ $(CXX) $(CFLAGS) mains/run_analysis.cpp mains/exCross.o  -o $@ $(LDFLAGS)
 
 mains/run_decay_constant_density : mains/run_decay_constant_density.cpp mains/exCross.o inc/nusquids_decay.h
