@@ -268,11 +268,13 @@ public:
     rate_mat = gsl_matrix_alloc(numneu,numneu);
   }
 
-  nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
-                NeutrinoType NT_ = NeutrinoType::both,
-                bool iinteraction_ = true, gsl_matrix * decay_matrix_, std::vector<double> m_nu, double m_phi):
-    nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_),m_nu(m_nu),m_phi(m_phi){
-      Set_Decay_Matrix(decay_matrix);
+  nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
+                NeutrinoType NT_, bool iinteraction_,
+                gsl_matrix * decay_matrix_, std::vector<double> m_nu_, double m_phi_):
+                nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
+      m_nu=m_nu_;
+      m_phi=m_phi_;
+      Set_Decay_Matrix(decay_matrix_);
   }
 
   ~nuSQUIDSDecay(){
