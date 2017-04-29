@@ -2,8 +2,10 @@
 
 CFLAGS= -O3 -fPIC -std=c++11
 #CFLAGS+= -g -fsanitize=address
-CFLAGS+= -I./inc -I/home/carguelles/work/NeutrinoDecay/verosimilitud/inc  `pkg-config --cflags squids nusquids hdf5`
-LDFLAGS+= `pkg-config --libs squids nusquids hdf5`
+CFLAGS+= -I./inc -I/home/carguelles/programs/SNOT/local/include -I/home/carguelles/work/NeutrinoDecay/verosimilitud/inc
+#`pkg-config --cflags squids nusquids hdf5`
+LDFLAGS+= -L/home/carguelles/programs/SNOT/local/lib/ -lnuSQuIDS -lSQuIDS -lgsl -lgslcblas -lm -lhdf5_hl -lhdf5_cpp -lhdf5 -lrt -lz -ldl
+#`pkg-config --libs squids nusquids hdf5`
 LDFLAGS+= -lverosimilitud
 LDFLAGS+=-lsupc++
 

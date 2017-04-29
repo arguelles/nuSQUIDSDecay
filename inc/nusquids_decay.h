@@ -208,9 +208,9 @@ public:
   nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
                 NeutrinoType NT_ = NeutrinoType::both,
                 bool iinteraction_ = true)
-      : nuSQUIDS(e_nodes, numneu_, NT_, iinteraction_,
-                 std::make_shared<
-                     nusquids::NeutrinoDISCrossSectionsFromTablesExtended>()) {
+      : nuSQUIDS(e_nodes, numneu_, NT_, iinteraction_){
+    //             std::make_shared<
+    //                 nusquids::NeutrinoDISCrossSectionsFromTablesExtended>()) {
     // just allocate some matrices
     DT_evol.resize(ne);
     for (int ei = 0; ei < ne; ei++) {
@@ -249,7 +249,10 @@ public:
   m_nu(other.m_nu),
   m_phi(other.m_phi)
   {
-    gsl_matrix_memcpy(rate_mat,other.rate_mat);
+    if(other.decay_parameters_set){
+      rate_mat = gsl_matrix_alloc(other.numneu,other.numneu);
+      gsl_matrix_memcpy(rate_mat,other.rate_mat);
+    }
   }
 
   void Set_Decay_Matrix(gsl_matrix* m){
