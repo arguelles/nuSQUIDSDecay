@@ -95,6 +95,7 @@ protected:
     }
   }
 
+  /*
   void AddToWriteHDF5(hid_t hdf5_loc_id) const {
     // here we write the new parameters to be saved in the HDF5 file
     hsize_t dim[1]{1};
@@ -161,6 +162,7 @@ protected:
                                &(decay_strength[i]));
     }
   }
+  */
 
   squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
     if (iincoherent_int)
@@ -231,6 +233,7 @@ public:
       m_nu=m_nu_;
       m_phi=m_phi_;
       Set_Decay_Matrix(decay_matrix_);
+      iincoherent_int=true;
   }
 
   ~nuSQUIDSDecay(){

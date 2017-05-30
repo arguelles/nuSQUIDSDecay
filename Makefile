@@ -9,7 +9,8 @@ LDFLAGS+= -L/home/carguelles/programs/SNOT/local/lib/ -lnuSQuIDS -lSQuIDS -lgsl 
 LDFLAGS+= -lverosimilitud
 LDFLAGS+=-lsupc++
 
-all: mains/exCross.o mains/run_decay mains/run_analysis mains/run_decay_constant_density mains/run_decay_constant_density_with_decay
+all: mains/exCross.o mains/run_decay mains/run_analysis mains/run_decay_oscillogram
+#	mains/atmospheric_example_read_simple mains/run_decay_constant_density mains/run_decay_constant_density_with_decay
 
 mains/exCross.o : inc/exCross.h mains/exCross.cpp
 	@ $(CXX) $(CFLAGS) -c mains/exCross.cpp -o $@
@@ -22,6 +23,14 @@ mains/run_analysis: mains/run_analysis.cpp mains/exCross.o inc/nusquids_decay.h
 	@echo Compiling run_analysis
 	@ $(CXX) $(CFLAGS) mains/run_analysis.cpp mains/exCross.o  -o $@ $(LDFLAGS)
 
+mains/run_decay_oscillogram: mains/run_decay_oscillogram.cpp mains/exCross.o inc/nusquids_decay.h
+	@echo Compiling run_analysis_oscillogram
+	@ $(CXX) $(CFLAGS) mains/run_decay_oscillogram.cpp mains/exCross.o  -o $@ $(LDFLAGS)
+
+mains/atmospheric_example_read_simple: mains/atmospheric_example_read_simple.cpp inc/nusquids_decay.h
+	@echo Compiling atmospheric_example_read_simple 
+	@ $(CXX) $(CFLAGS) mains/atmospheric_example_read_simple.cpp -o $@ $(LDFLAGS)
+
 mains/run_decay_constant_density : mains/run_decay_constant_density.cpp mains/exCross.o inc/nusquids_decay.h
 	@echo Compiling run_decay_constant_density
 	@ $(CXX) $(CFLAGS) mains/run_decay_constant_density.cpp mains/exCross.o  -o $@ $(LDFLAGS)
@@ -32,7 +41,7 @@ mains/run_decay_constant_density_with_decay : mains/run_decay_constant_density_w
 
 .PHONY: clean
 clean:
-	rm -rf ./mains/run_decay ./mains/run_decay_constant_density_with_decay ./mains/run_decay_constant_density ./mains/exCross.o
+	rm -rf ./mains/run_decay ./mains/run_analysis ./mains/run_decay_oscillogram ./mains/run_decay_constant_density_with_decay ./mains/run_decay_constant_density ./mains/exCross.o
 
 
 
