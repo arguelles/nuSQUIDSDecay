@@ -111,40 +111,66 @@ int main(int argc, char* argv[])
 
   //nusqdec.Set_ProgressBar(true);
   nusqdec.Set_IncoherentInteractions(false);
-  nusqdec.Set_Majorana(false);
+  nusqdec.Set_Majorana(true);
   //nusqdec.Set_IncoherentInteractions(true);
   //nusqdec.Set_OtherRhoTerms(false);
   nusqdec.Set_OtherRhoTerms(true);
 
 	//------------------------//
 
-
-  gsl_matrix* scalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_all(scalar_tau_mat, 1e60); // Set lifetimes to effective stability.
+  //Set chirality-preserving scalar process lifetimes.
+  gsl_matrix* cpp_scalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(cpp_scalar_tau_mat, 1e60); // Set lifetimes to effective stability.
   //Setting for 4 neutrino case with stable nu_1. 
-  double scalar_lifetime = 1.0e2;
-  //  gsl_matrix_set(scalar_tau_mat,0,1,scalar_lifetime); //tau_21
-  //  gsl_matrix_set(scalar_tau_mat,0,2,scalar_lifetime); //tau_31
-  //  gsl_matrix_set(scalar_tau_mat,1,2,scalar_lifetime); //tau_32
-  gsl_matrix_set(scalar_tau_mat,0,3,scalar_lifetime); //tau_41
-  gsl_matrix_set(scalar_tau_mat,1,3,scalar_lifetime); //tau_42
-  gsl_matrix_set(scalar_tau_mat,2,3,scalar_lifetime); //tau_43
+  double cpp_scalar_lifetime = 1.0e2;
+  //  gsl_matrix_set(cpp_scalar_tau_mat,0,1,cpp_scalar_lifetime); //tau_21
+  //  gsl_matrix_set(cpp_scalar_tau_mat,0,2,cpp_scalar_lifetime); //tau_31
+  //  gsl_matrix_set(cpp_scalar_tau_mat,1,2,cpp_scalar_lifetime); //tau_32
+  gsl_matrix_set(cpp_scalar_tau_mat,0,3,cpp_scalar_lifetime); //tau_41
+  gsl_matrix_set(cpp_scalar_tau_mat,1,3,cpp_scalar_lifetime); //tau_42
+  gsl_matrix_set(cpp_scalar_tau_mat,2,3,cpp_scalar_lifetime); //tau_43
 
-  gsl_matrix* pseudoscalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_all(pseudoscalar_tau_mat, 1e60); // Set pseudoscalar_lifetimes to effective stability.
+  //Set chirality-violating scalar process lifetimes.
+  gsl_matrix* cvp_scalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(cvp_scalar_tau_mat, 1e60); // Set lifetimes to effective stability.
   //Setting for 4 neutrino case with stable nu_1. 
-  double pseudoscalar_lifetime = 1.0e2;
-  //double pseudoscalar_lifetime = 1.0e60;
-  //  gsl_matrix_set(pseudoscalar_tau_mat,0,1,pseudoscalar_lifetime); //tau_21
-  //  gsl_matrix_set(pseudoscalar_tau_mat,0,2,pseudoscalar_lifetime); //tau_31
-  //  gsl_matrix_set(pseudoscalar_tau_mat,1,2,pseudoscalar_lifetime); //tau_32
-  gsl_matrix_set(pseudoscalar_tau_mat,0,3,pseudoscalar_lifetime); //tau_41
-  gsl_matrix_set(pseudoscalar_tau_mat,1,3,pseudoscalar_lifetime); //tau_42
-  gsl_matrix_set(pseudoscalar_tau_mat,2,3,pseudoscalar_lifetime); //tau_43
+  double cvp_scalar_lifetime = 1.0e2;
+  //  gsl_matrix_set(cvp_scalar_tau_mat,0,1,cvp_scalar_lifetime); //tau_21
+  //  gsl_matrix_set(cvp_scalar_tau_mat,0,2,cvp_scalar_lifetime); //tau_31
+  //  gsl_matrix_set(cvp_scalar_tau_mat,1,2,cvp_scalar_lifetime); //tau_32
+  gsl_matrix_set(cvp_scalar_tau_mat,0,3,cvp_scalar_lifetime); //tau_41
+  gsl_matrix_set(cvp_scalar_tau_mat,1,3,cvp_scalar_lifetime); //tau_42
+  gsl_matrix_set(cvp_scalar_tau_mat,2,3,cvp_scalar_lifetime); //tau_43
+
+  //Set chirality-preserving pseudoscalar process lifetimes.
+  gsl_matrix* cpp_pseudoscalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(cpp_pseudoscalar_tau_mat, 1e60); // Set cpp_pseudoscalar_lifetimes to effective stability.
+  //Setting for 4 neutrino case with stable nu_1. 
+  double cpp_pseudoscalar_lifetime = 1.0e2;
+  //double cpp_pseudoscalar_lifetime = 1.0e60;
+  //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,0,1,cpp_pseudoscalar_lifetime); //tau_21
+  //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,0,2,cpp_pseudoscalar_lifetime); //tau_31
+  //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,1,2,cpp_pseudoscalar_lifetime); //tau_32
+  gsl_matrix_set(cpp_pseudoscalar_tau_mat,0,3,cpp_pseudoscalar_lifetime); //tau_41
+  gsl_matrix_set(cpp_pseudoscalar_tau_mat,1,3,cpp_pseudoscalar_lifetime); //tau_42
+  gsl_matrix_set(cpp_pseudoscalar_tau_mat,2,3,cpp_pseudoscalar_lifetime); //tau_43
+
+  //Set chirality-violating pseudoscalar process lifetimes.
+  gsl_matrix* cvp_pseudoscalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(cvp_pseudoscalar_tau_mat, 1e60); // Set cvp_pseudoscalar_lifetimes to effective stability.
+  //Setting for 4 neutrino case with stable nu_1. 
+  double cvp_pseudoscalar_lifetime = 1.0e2;
+  //double cvp_pseudoscalar_lifetime = 1.0e60;
+  //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,0,1,cvp_pseudoscalar_lifetime); //tau_21
+  //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,0,2,cvp_pseudoscalar_lifetime); //tau_31
+  //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,1,2,cvp_pseudoscalar_lifetime); //tau_32
+  gsl_matrix_set(cvp_pseudoscalar_tau_mat,0,3,cvp_pseudoscalar_lifetime); //tau_41
+  gsl_matrix_set(cvp_pseudoscalar_tau_mat,1,3,cvp_pseudoscalar_lifetime); //tau_42
+  gsl_matrix_set(cvp_pseudoscalar_tau_mat,2,3,cvp_pseudoscalar_lifetime); //tau_43
 
 
-  gsl_matrix* scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_zero(scalar_decay_mat);
+  gsl_matrix* cpp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(cpp_scalar_decay_mat);
 
 	double rate;
 	double colrate;
@@ -154,18 +180,17 @@ int main(int argc, char* argv[])
 
 		for (size_t row=0; row<col; row++)
 		{	
-			rate = 1.0/gsl_matrix_get(scalar_tau_mat,row,col);
-			gsl_matrix_set(scalar_decay_mat,row,col,rate);
+			rate = 1.0/gsl_matrix_get(cpp_scalar_tau_mat,row,col);
+			gsl_matrix_set(cpp_scalar_decay_mat,row,col,rate);
 			colrate+=rate*nu_mass[col];
 		}
 
-		gsl_matrix_set(scalar_decay_mat,col,col,colrate);
+		gsl_matrix_set(cpp_scalar_decay_mat,col,col,colrate);
 	}	
 
-  nusqdec.Set_Scalar_Matrix(scalar_decay_mat);
 
-  gsl_matrix* pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_zero(pseudoscalar_decay_mat);
+  gsl_matrix* cvp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(cvp_scalar_decay_mat);
 
 	for (size_t col=0; col<numneu; col++)
 	{
@@ -173,15 +198,52 @@ int main(int argc, char* argv[])
 
 		for (size_t row=0; row<col; row++)
 		{	
-			rate = 1.0/gsl_matrix_get(pseudoscalar_tau_mat,row,col);
-			gsl_matrix_set(pseudoscalar_decay_mat,row,col,rate);
+			rate = 1.0/gsl_matrix_get(cvp_scalar_tau_mat,row,col);
+			gsl_matrix_set(cvp_scalar_decay_mat,row,col,rate);
 			colrate+=rate*nu_mass[col];
 		}
 
-		gsl_matrix_set(pseudoscalar_decay_mat,col,col,colrate);
+		gsl_matrix_set(cvp_scalar_decay_mat,col,col,colrate);
 	}	
 
-  nusqdec.Set_Pseudoscalar_Matrix(pseudoscalar_decay_mat);
+  nusqdec.Set_Scalar_Matrices(cpp_scalar_decay_mat,cvp_scalar_decay_mat);
+
+  gsl_matrix* cpp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(cpp_pseudoscalar_decay_mat);
+
+	for (size_t col=0; col<numneu; col++)
+	{
+		colrate=0;
+
+		for (size_t row=0; row<col; row++)
+		{	
+			rate = 1.0/gsl_matrix_get(cpp_pseudoscalar_tau_mat,row,col);
+			gsl_matrix_set(cpp_pseudoscalar_decay_mat,row,col,rate);
+			colrate+=rate*nu_mass[col];
+		}
+
+		gsl_matrix_set(cpp_pseudoscalar_decay_mat,col,col,colrate);
+	}	
+
+
+  gsl_matrix* cvp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(cvp_pseudoscalar_decay_mat);
+
+	for (size_t col=0; col<numneu; col++)
+	{
+		colrate=0;
+
+		for (size_t row=0; row<col; row++)
+		{	
+			rate = 1.0/gsl_matrix_get(cvp_pseudoscalar_tau_mat,row,col);
+			gsl_matrix_set(cvp_pseudoscalar_decay_mat,row,col,rate);
+			colrate+=rate*nu_mass[col];
+		}
+
+		gsl_matrix_set(cvp_pseudoscalar_decay_mat,col,col,colrate);
+	}	
+
+  nusqdec.Set_Pseudoscalar_Matrices(cpp_pseudoscalar_decay_mat,cvp_pseudoscalar_decay_mat);
   nusqdec.Compute_DT();
 
 	//nusqdec.Set_IncludeOscillations(false); 
@@ -205,10 +267,14 @@ int main(int argc, char* argv[])
     }
   }
 
-  gsl_matrix_free(scalar_tau_mat);  
-  gsl_matrix_free(scalar_decay_mat);  
-  gsl_matrix_free(pseudoscalar_tau_mat);  
-  gsl_matrix_free(pseudoscalar_decay_mat);  
+  gsl_matrix_free(cpp_scalar_tau_mat);  
+  gsl_matrix_free(cvp_scalar_tau_mat);  
+  gsl_matrix_free(cpp_scalar_decay_mat);  
+  gsl_matrix_free(cvp_scalar_decay_mat);  
+  gsl_matrix_free(cpp_pseudoscalar_tau_mat);  
+  gsl_matrix_free(cvp_pseudoscalar_tau_mat);  
+  gsl_matrix_free(cpp_pseudoscalar_decay_mat);  
+  gsl_matrix_free(cvp_pseudoscalar_decay_mat);  
 
   return 0;
 }

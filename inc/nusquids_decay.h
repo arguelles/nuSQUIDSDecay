@@ -61,8 +61,10 @@ private:
   squids::SU_vector DT;
   std::vector<squids::SU_vector> DT_evol;
 
-  gsl_matrix* scalar_decay_mat;
-  gsl_matrix* pseudoscalar_decay_mat;
+  gsl_matrix* cpp_scalar_decay_mat;
+  gsl_matrix* cvp_scalar_decay_mat;
+  gsl_matrix* cpp_pseudoscalar_decay_mat;
+  gsl_matrix* cvp_pseudoscalar_decay_mat;
 
   std::vector<double> m_nu;
   double m_phi;
@@ -204,9 +206,9 @@ protected:
 					decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
 											*evol_b0_proj[irho][i][ieparent])*
                       (1/(eparent*eparent*edaughter))*
-											((gsl_matrix_get(scalar_decay_mat,j,i)/gamma)*
+											((gsl_matrix_get(cpp_scalar_decay_mat,j,i)/gamma)*
 											pow(eparent+xij*edaughter,2)/pow(xij+1,2)+
-											(gsl_matrix_get(pseudoscalar_decay_mat,j,i)/gamma)*
+											(gsl_matrix_get(cpp_pseudoscalar_decay_mat,j,i)/gamma)*
 											pow(eparent-xij*edaughter,2)/pow(xij-1,2))*
                       (evol_b0_proj[irho][j][iedaughter]);
     		}
@@ -226,9 +228,9 @@ protected:
 						decay_regeneration += (delta_eparent)*(state[ieparent].rho[parent_irho]
 												*evol_b0_proj[parent_irho][i][ieparent])*
 	                      ((eparent-edaughter)/(eparent*eparent*edaughter))*
-												((gsl_matrix_get(scalar_decay_mat,j,i)/gamma)*
+												((gsl_matrix_get(cvp_scalar_decay_mat,j,i)/gamma)*
 												(edaughter*pow(xij,2)-eparent)/pow(xij+1,2)+
-												(gsl_matrix_get(pseudoscalar_decay_mat,j,i)/gamma)*
+												(gsl_matrix_get(cvp_pseudoscalar_decay_mat,j,i)/gamma)*
 												(edaughter*pow(xij,2)-eparent)/pow(xij-1,2))*
 	                      (evol_b0_proj[irho][j][iedaughter]);
 	    		}
@@ -259,29 +261,37 @@ public:
     m_nu.resize(numneu);
 
     // allocating memory for rate matrix
-    scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-    pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    cpp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    cvp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    cpp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    cvp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
   }
 
   nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
                 NeutrinoType NT_, bool iinteraction_,
-                gsl_matrix * scalar_decay_matrix_, 
-                gsl_matrix * pseudoscalar_decay_matrix_, 
+                gsl_matrix * cpp_scalar_decay_matrix_, 
+                gsl_matrix * cvp_scalar_decay_matrix_, 
+                gsl_matrix * cpp_pseudoscalar_decay_matrix_, 
+                gsl_matrix * cvp_pseudoscalar_decay_matrix_, 
 								std::vector<double> m_nu_, double m_phi_):
                 nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
       m_nu=m_nu_;
       m_phi=m_phi_;
-    	scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-    	pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-      Set_Scalar_Matrix(scalar_decay_matrix_);
-      Set_Pseudoscalar_Matrix(pseudoscalar_decay_matrix_);
+    	cpp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    	cvp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    	cpp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    	cvp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+      Set_Scalar_Matrices(cpp_scalar_decay_matrix_,cvp_scalar_decay_matrix_);
+      Set_Pseudoscalar_Matrices(cpp_pseudoscalar_decay_matrix_,cvp_pseudoscalar_decay_matrix_);
 	  Compute_DT();
       iincoherent_int=true;
   }
 
   ~nuSQUIDSDecay(){
-    gsl_matrix_free(scalar_decay_mat);
-    gsl_matrix_free(pseudoscalar_decay_mat);
+    gsl_matrix_free(cpp_scalar_decay_mat);
+    gsl_matrix_free(cvp_scalar_decay_mat);
+    gsl_matrix_free(cpp_pseudoscalar_decay_mat);
+    gsl_matrix_free(cvp_pseudoscalar_decay_mat);
   }
 
   // move constructor
@@ -302,37 +312,55 @@ public:
   m_phi(other.m_phi)
   {
     if(other.scalar_decay_parameters_set&&other.pseudoscalar_decay_parameters_set){
-      scalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
-      pseudoscalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
-      gsl_matrix_memcpy(scalar_decay_mat,other.scalar_decay_mat);
-      gsl_matrix_memcpy(pseudoscalar_decay_mat,other.pseudoscalar_decay_mat);
+      cpp_scalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
+      cvp_scalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
+      cpp_pseudoscalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
+      cvp_pseudoscalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
+      gsl_matrix_memcpy(cpp_scalar_decay_mat,other.cpp_scalar_decay_mat);
+      gsl_matrix_memcpy(cvp_scalar_decay_mat,other.cvp_scalar_decay_mat);
+      gsl_matrix_memcpy(cpp_pseudoscalar_decay_mat,other.cpp_pseudoscalar_decay_mat);
+      gsl_matrix_memcpy(cvp_pseudoscalar_decay_mat,other.cvp_pseudoscalar_decay_mat);
     }
   }
 
-  void Set_Scalar_Matrix(gsl_matrix* m){
+  void Set_Scalar_Matrices(gsl_matrix* mcpp,gsl_matrix* mcvp){
 
-    if (scalar_decay_mat->size1 != m->size1){
+    if (cpp_scalar_decay_mat->size1 != mcpp->size1){
       throw std::runtime_error("size1 mismatch while constructing decay matrix.");
     }
-    if (scalar_decay_mat->size2 != m->size2){
+    if (cpp_scalar_decay_mat->size2 != mcpp->size2){
+      throw std::runtime_error("size2 mismatch while constructing decay matrix.");
+    }
+    if (cpp_scalar_decay_mat->size1 != mcvp->size1){
+      throw std::runtime_error("size1 mismatch while constructing decay matrix.");
+    }
+    if (cpp_scalar_decay_mat->size2 != mcvp->size2){
       throw std::runtime_error("size2 mismatch while constructing decay matrix.");
     }
 
-    gsl_matrix_memcpy(scalar_decay_mat,m);
+    gsl_matrix_memcpy(cpp_scalar_decay_mat,mcpp);
+    gsl_matrix_memcpy(cvp_scalar_decay_mat,mcvp);
 
     scalar_decay_parameters_set=true;
   }
 
-  void Set_Pseudoscalar_Matrix(gsl_matrix* m){
+  void Set_Pseudoscalar_Matrices(gsl_matrix* mcpp,gsl_matrix* mcvp){
 
-    if (pseudoscalar_decay_mat->size1 != m->size1){
+    if (cpp_pseudoscalar_decay_mat->size1 != mcpp->size1){
       throw std::runtime_error("size1 mismatch while constructing decay matrix.");
     }
-    if (pseudoscalar_decay_mat->size2 != m->size2){
+    if (cpp_pseudoscalar_decay_mat->size2 != mcpp->size2){
+      throw std::runtime_error("size2 mismatch while constructing decay matrix.");
+    }
+    if (cpp_pseudoscalar_decay_mat->size1 != mcvp->size1){
+      throw std::runtime_error("size1 mismatch while constructing decay matrix.");
+    }
+    if (cpp_pseudoscalar_decay_mat->size2 != mcvp->size2){
       throw std::runtime_error("size2 mismatch while constructing decay matrix.");
     }
 
-    gsl_matrix_memcpy(pseudoscalar_decay_mat,m);
+    gsl_matrix_memcpy(cpp_pseudoscalar_decay_mat,mcpp);
+    gsl_matrix_memcpy(cvp_pseudoscalar_decay_mat,mcvp);
 
     pseudoscalar_decay_parameters_set=true;
   }
@@ -340,7 +368,8 @@ public:
 	void Compute_DT(){
     DT = squids::SU_vector(numneu);
     for(size_t i = 0; i < numneu; i++){
-      double entry = gsl_matrix_get(scalar_decay_mat,i,i)+gsl_matrix_get(pseudoscalar_decay_mat,i,i);
+      double entry = gsl_matrix_get(cpp_scalar_decay_mat,i,i)+gsl_matrix_get(cpp_pseudoscalar_decay_mat,i,i)+
+		   			gsl_matrix_get(cvp_scalar_decay_mat,i,i)+gsl_matrix_get(cvp_pseudoscalar_decay_mat,i,i);
       DT += entry*squids::SU_vector::Projector(numneu, i);
     }
 		dt_set=true;
