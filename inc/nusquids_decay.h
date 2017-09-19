@@ -36,6 +36,7 @@ Janet Conrad (conrad@mit.edu)
 #include <iostream>
 #include <nuSQuIDS/nuSQuIDS.h>
 #include "exCross.h"
+#include <math.h>
 
 bool close_enough(double x, double y)
 {
@@ -48,17 +49,24 @@ namespace nusquids {
 
 class nuSQUIDSDecay : public nuSQUIDS {
 private:
+	bool majorana = false;
   bool iincoherent_int = false;
-  bool decay_parameters_set = false;
-  squids::Const decay_parameters;
-  std::vector<double> decay_strength;
+  bool scalar_decay_parameters_set = false;
+  bool pseudoscalar_decay_parameters_set = false;
+  bool dt_set = false;
+  squids::Const scalar_decay_parameters;
+  squids::Const pseudoscalar_decay_parameters;
+  std::vector<double> scalar_decay_strength;
+  std::vector<double> pseudoscalar_decay_strength;
   squids::SU_vector DT;
   std::vector<squids::SU_vector> DT_evol;
 
-  gsl_matrix* rate_mat;
+  gsl_matrix* scalar_decay_mat;
+  gsl_matrix* pseudoscalar_decay_mat;
 
   std::vector<double> m_nu;
   double m_phi;
+
 
   double pstar(unsigned int i, unsigned int j) const {
     if (m_nu[i] < m_nu[j] + m_phi) {
@@ -86,7 +94,7 @@ private:
 
 protected:
   void AddToPreDerive(double x) {
-    if (!decay_parameters_set)
+    if (!(scalar_decay_parameters_set&&pseudoscalar_decay_parameters_set&&dt_set))
       throw std::runtime_error("decay parameters not set");
     for (int ei = 0; ei < ne; ei++) {
       // asumming same mass hamiltonian for neutrinos/antineutrinos
@@ -174,34 +182,62 @@ protected:
       return DT_evol[ie] * (0.5 / E_range[ie]);
   }
 
-  squids::SU_vector InteractionsRho(unsigned int ie, unsigned int irho) const {
+  squids::SU_vector InteractionsRho(unsigned int iedaughter, unsigned int irho) const {
     squids::SU_vector decay_regeneration(numneu);
     // here one needs to fill in the extra decay regeneration terms
-    double Ef = E_range[ie];
-    // auxiliary variables
-    double E0;
-    size_t E0_index;
-    double my_pstar;
-    double gamma;
+    double edaughter = E_range[iedaughter];
+    // j-daughter index
+    for (size_t j = 0; j < numneu; j++) {
+      // i-parent index
+    	for (size_t i = j+1; i < numneu; i++) {
+				//parent-to-daughter mass ratio
+				double xij = m_nu[i]/m_nu[j];
+				//boost factor to lab frame
+				double ieparent_high = nearest_element(edaughter*xij);
+				// i-energy (parent energy) index 
+				//left-rectangular integral approximation
+    		for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
+					double eparent = E_range[ieparent];
+					double gamma = eparent/m_nu[i];
+					double delta_eparent = E_range[ieparent+1]-E_range[ieparent];
+					//combining scalar and pseudoscalar contributions
+					decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
+											*evol_b0_proj[irho][i][ieparent])*
+                      (1/(eparent*eparent*edaughter))*
+											((gsl_matrix_get(scalar_decay_mat,j,i)/gamma)*
+											pow(eparent+xij*edaughter,2)/pow(xij+1,2)+
+											(gsl_matrix_get(pseudoscalar_decay_mat,j,i)/gamma)*
+											pow(eparent-xij*edaughter,2)/pow(xij-1,2))*
+                      (evol_b0_proj[irho][j][iedaughter]);
+    		}
 
-    // i-daughter index
-    for (size_t i = 0; i < numneu; i++) {
-      // j-parent index
-      for (size_t j = i + 1; j < numneu; j++) {
-        my_pstar = pstar(j,i);
-        gamma = Ef/my_pstar;
-        E0 = m_nu[j]*gamma;
-        E0_index = nearest_element(E0);
-        decay_regeneration +=
-                              (state[E0_index].rho[irho]*evol_b0_proj[irho][j][E0_index])*
-                              (gsl_matrix_get(rate_mat,i,j)/gamma)*
-                              (evol_b0_proj[irho][i][ie]);
-      }
-    }
-
+				//Include chirality-violating term if neutrino is majorana.
+				if(majorana){
+					unsigned int parent_irho;
+					if (irho==0) parent_irho=1;
+					if (irho==1) parent_irho=0;
+					// i-energy (parent energy) index 
+					//left-rectangular integral approximation
+	    		for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
+						double eparent = E_range[ieparent];
+						double gamma = eparent/m_nu[i];
+						double delta_eparent = E_range[ieparent+1]-E_range[ieparent];
+						//combining scalar and pseudoscalar contributions
+						decay_regeneration += (delta_eparent)*(state[ieparent].rho[parent_irho]
+												*evol_b0_proj[parent_irho][i][ieparent])*
+	                      ((eparent-edaughter)/(eparent*eparent*edaughter))*
+												((gsl_matrix_get(scalar_decay_mat,j,i)/gamma)*
+												(edaughter*pow(xij,2)-eparent)/pow(xij+1,2)+
+												(gsl_matrix_get(pseudoscalar_decay_mat,j,i)/gamma)*
+												(edaughter*pow(xij,2)-eparent)/pow(xij-1,2))*
+	                      (evol_b0_proj[irho][j][iedaughter]);
+	    		}
+				}
+			}
+		}
     //  do not modify after this line
     if (iincoherent_int)
-      return nuSQUIDS::InteractionsRho(ie, irho) + decay_regeneration;
+      return nuSQUIDS::InteractionsRho(iedaughter, irho) + decay_regeneration;
     else
       return decay_regeneration;
   }
@@ -223,62 +259,97 @@ public:
     m_nu.resize(numneu);
 
     // allocating memory for rate matrix
-    rate_mat = gsl_matrix_alloc(numneu,numneu);
+    scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
   }
 
   nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
                 NeutrinoType NT_, bool iinteraction_,
-                gsl_matrix * decay_matrix_, std::vector<double> m_nu_, double m_phi_):
+                gsl_matrix * scalar_decay_matrix_, 
+                gsl_matrix * pseudoscalar_decay_matrix_, 
+								std::vector<double> m_nu_, double m_phi_):
                 nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
       m_nu=m_nu_;
       m_phi=m_phi_;
-      Set_Decay_Matrix(decay_matrix_);
+    	scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+    	pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+      Set_Scalar_Matrix(scalar_decay_matrix_);
+      Set_Pseudoscalar_Matrix(pseudoscalar_decay_matrix_);
+	  Compute_DT();
       iincoherent_int=true;
   }
 
   ~nuSQUIDSDecay(){
-    gsl_matrix_free(rate_mat);
+    gsl_matrix_free(scalar_decay_mat);
+    gsl_matrix_free(pseudoscalar_decay_mat);
   }
 
   // move constructor
   nuSQUIDSDecay(nuSQUIDSDecay&& other):
   nuSQUIDS(std::move(other)),
   iincoherent_int(other.iincoherent_int),
-  decay_parameters_set(other.decay_parameters_set),
-  decay_parameters(std::move(other.decay_parameters)),
-  decay_strength(other.decay_strength),
+  majorana(other.majorana),
+  scalar_decay_parameters_set(other.scalar_decay_parameters_set),
+  scalar_decay_parameters(std::move(other.scalar_decay_parameters)),
+  pseudoscalar_decay_parameters_set(other.pseudoscalar_decay_parameters_set),
+  pseudoscalar_decay_parameters(std::move(other.pseudoscalar_decay_parameters)),
+  scalar_decay_strength(other.scalar_decay_strength),
+  pseudoscalar_decay_strength(other.pseudoscalar_decay_strength),
   DT(other.DT),
+	dt_set(std::move(other.dt_set)),
   DT_evol(other.DT_evol),
   m_nu(other.m_nu),
   m_phi(other.m_phi)
   {
-    if(other.decay_parameters_set){
-      rate_mat = gsl_matrix_alloc(other.numneu,other.numneu);
-      gsl_matrix_memcpy(rate_mat,other.rate_mat);
+    if(other.scalar_decay_parameters_set&&other.pseudoscalar_decay_parameters_set){
+      scalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
+      pseudoscalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
+      gsl_matrix_memcpy(scalar_decay_mat,other.scalar_decay_mat);
+      gsl_matrix_memcpy(pseudoscalar_decay_mat,other.pseudoscalar_decay_mat);
     }
   }
 
-  void Set_Decay_Matrix(gsl_matrix* m){
+  void Set_Scalar_Matrix(gsl_matrix* m){
 
-    if (rate_mat->size1 != m->size1){
+    if (scalar_decay_mat->size1 != m->size1){
       throw std::runtime_error("size1 mismatch while constructing decay matrix.");
     }
-    if (rate_mat->size2 != m->size2){
+    if (scalar_decay_mat->size2 != m->size2){
       throw std::runtime_error("size2 mismatch while constructing decay matrix.");
     }
 
-    gsl_matrix_memcpy(rate_mat,m);
+    gsl_matrix_memcpy(scalar_decay_mat,m);
 
-    DT = squids::SU_vector(numneu);
-    for(size_t i = 0; i < numneu; i++){
-      double entry = gsl_matrix_get(rate_mat,i,i);
-      DT += entry*squids::SU_vector::Projector(numneu, i);
-    }
-
-    decay_parameters_set=true;
+    scalar_decay_parameters_set=true;
   }
 
+  void Set_Pseudoscalar_Matrix(gsl_matrix* m){
+
+    if (pseudoscalar_decay_mat->size1 != m->size1){
+      throw std::runtime_error("size1 mismatch while constructing decay matrix.");
+    }
+    if (pseudoscalar_decay_mat->size2 != m->size2){
+      throw std::runtime_error("size2 mismatch while constructing decay matrix.");
+    }
+
+    gsl_matrix_memcpy(pseudoscalar_decay_mat,m);
+
+    pseudoscalar_decay_parameters_set=true;
+  }
+
+	void Compute_DT(){
+    DT = squids::SU_vector(numneu);
+    for(size_t i = 0; i < numneu; i++){
+      double entry = gsl_matrix_get(scalar_decay_mat,i,i)+gsl_matrix_get(pseudoscalar_decay_mat,i,i);
+      DT += entry*squids::SU_vector::Projector(numneu, i);
+    }
+		dt_set=true;
+	}
+
+
   void Set_IncoherentInteractions(bool opt) { iincoherent_int = opt; }
+
+  void Set_Majorana(bool opt) { majorana = opt; }
 
   void Set_m_nu(double mass, unsigned int state) { m_nu[state] = mass; }
 

@@ -18,8 +18,8 @@ int main(int argc, char* argv[])
   const unsigned int tau = 2;
   const unsigned int numneu = 4;
 
-  nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e5*units.GeV,100);
-  //nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e3*units.GeV,10);
+  //nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e5*units.GeV,100);
+  nusquids::marray<double,1> e_nodes = logspace(1.0e2*units.GeV,1.0e3*units.GeV,10);
 
   nuSQUIDSDecay nusqdec(e_nodes,numneu);
 
@@ -111,6 +111,7 @@ int main(int argc, char* argv[])
 
   //nusqdec.Set_ProgressBar(true);
   nusqdec.Set_IncoherentInteractions(false);
+  nusqdec.Set_Majorana(false);
   //nusqdec.Set_IncoherentInteractions(true);
   //nusqdec.Set_OtherRhoTerms(false);
   nusqdec.Set_OtherRhoTerms(true);
@@ -118,24 +119,32 @@ int main(int argc, char* argv[])
 	//------------------------//
 
 
-  gsl_matrix* tau_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_all(tau_mat, 1e60); // Set lifetimes to effective stability.
+  gsl_matrix* scalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(scalar_tau_mat, 1e60); // Set lifetimes to effective stability.
+  //Setting for 4 neutrino case with stable nu_1. 
+  double scalar_lifetime = 1.0e2;
+  //  gsl_matrix_set(scalar_tau_mat,0,1,scalar_lifetime); //tau_21
+  //  gsl_matrix_set(scalar_tau_mat,0,2,scalar_lifetime); //tau_31
+  //  gsl_matrix_set(scalar_tau_mat,1,2,scalar_lifetime); //tau_32
+  gsl_matrix_set(scalar_tau_mat,0,3,scalar_lifetime); //tau_41
+  gsl_matrix_set(scalar_tau_mat,1,3,scalar_lifetime); //tau_42
+  gsl_matrix_set(scalar_tau_mat,2,3,scalar_lifetime); //tau_43
 
-	//Setting for 4 neutrino case with stable nu_1. 
-  double lifetime = 1.0e2;
+  gsl_matrix* pseudoscalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(pseudoscalar_tau_mat, 1e60); // Set pseudoscalar_lifetimes to effective stability.
+  //Setting for 4 neutrino case with stable nu_1. 
+  double pseudoscalar_lifetime = 1.0e2;
+  //double pseudoscalar_lifetime = 1.0e60;
+  //  gsl_matrix_set(pseudoscalar_tau_mat,0,1,pseudoscalar_lifetime); //tau_21
+  //  gsl_matrix_set(pseudoscalar_tau_mat,0,2,pseudoscalar_lifetime); //tau_31
+  //  gsl_matrix_set(pseudoscalar_tau_mat,1,2,pseudoscalar_lifetime); //tau_32
+  gsl_matrix_set(pseudoscalar_tau_mat,0,3,pseudoscalar_lifetime); //tau_41
+  gsl_matrix_set(pseudoscalar_tau_mat,1,3,pseudoscalar_lifetime); //tau_42
+  gsl_matrix_set(pseudoscalar_tau_mat,2,3,pseudoscalar_lifetime); //tau_43
 
-//  gsl_matrix_set(tau_mat,0,1,lifetime); //tau_21
 
-//  gsl_matrix_set(tau_mat,0,2,lifetime); //tau_31
-//  gsl_matrix_set(tau_mat,1,2,lifetime); //tau_32
-
-  gsl_matrix_set(tau_mat,0,3,lifetime); //tau_41
-  gsl_matrix_set(tau_mat,1,3,lifetime); //tau_42
-  gsl_matrix_set(tau_mat,2,3,lifetime); //tau_43
-
-
-  gsl_matrix* rate_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_zero(rate_mat);
+  gsl_matrix* scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(scalar_decay_mat);
 
 	double rate;
 	double colrate;
@@ -145,15 +154,35 @@ int main(int argc, char* argv[])
 
 		for (size_t row=0; row<col; row++)
 		{	
-			rate = 1.0/gsl_matrix_get(tau_mat,row,col);
-			gsl_matrix_set(rate_mat,row,col,rate);
+			rate = 1.0/gsl_matrix_get(scalar_tau_mat,row,col);
+			gsl_matrix_set(scalar_decay_mat,row,col,rate);
 			colrate+=rate*nu_mass[col];
 		}
 
-		gsl_matrix_set(rate_mat,col,col,colrate);
+		gsl_matrix_set(scalar_decay_mat,col,col,colrate);
 	}	
 
-  nusqdec.Set_Decay_Matrix(rate_mat);
+  nusqdec.Set_Scalar_Matrix(scalar_decay_mat);
+
+  gsl_matrix* pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(pseudoscalar_decay_mat);
+
+	for (size_t col=0; col<numneu; col++)
+	{
+		colrate=0;
+
+		for (size_t row=0; row<col; row++)
+		{	
+			rate = 1.0/gsl_matrix_get(pseudoscalar_tau_mat,row,col);
+			gsl_matrix_set(pseudoscalar_decay_mat,row,col,rate);
+			colrate+=rate*nu_mass[col];
+		}
+
+		gsl_matrix_set(pseudoscalar_decay_mat,col,col,colrate);
+	}	
+
+  nusqdec.Set_Pseudoscalar_Matrix(pseudoscalar_decay_mat);
+  nusqdec.Compute_DT();
 
 	//nusqdec.Set_IncludeOscillations(false); 
 
@@ -176,7 +205,10 @@ int main(int argc, char* argv[])
     }
   }
 
-  gsl_matrix_free(tau_mat);  
-  gsl_matrix_free(rate_mat);  
+  gsl_matrix_free(scalar_tau_mat);  
+  gsl_matrix_free(scalar_decay_mat);  
+  gsl_matrix_free(pseudoscalar_tau_mat);  
+  gsl_matrix_free(pseudoscalar_decay_mat);  
+
   return 0;
 }
