@@ -6,7 +6,7 @@
 #include <nuSQuIDS/marray.h>
 #include <nuSQuIDS/tools.h>
 #include "nusquids_decay.h"
-#include "Verosimilitud.h"
+//#include "Verosimilitud.h"
 
 //===================MAIN======================================================//
 //===================MAIN======================================================//
@@ -30,7 +30,7 @@ int main(int argc, char** argv){
 
   // important paths
   std::string data_path = "/home/carguelles/work/NeutrinoDecay/verosimilitud/data/observed_events.dat";
-  std::string flux_path = "/home/carguelles/work/NeutrinoDecay/verosimilitud/data/HondaGaisser.h5";
+  std::string flux_path = "/home/carguelles/work/NeutrinoDecay/verosimilitud/data/PolyGonato_QGSJET-II-04.h5";
   std::string effective_area_path = "/home/carguelles/work/NeutrinoDecay/verosimilitud/data/";
   std::string input_flux_path = "/home/carguelles/work/TheSterileSearch/flux_calculation/flux_models/";
 
@@ -46,12 +46,146 @@ int main(int argc, char** argv){
   double mphi = 0.0;
   std::vector<double> nu_mass{m1,m2,m3,m4};
 
+  // RATE MATRICES
+
+//------------------------//
+
+  double x = m4/m3;
+  double f = x/2.+2.+2.*log(x)/x - 2/x/x - 1/x/x/x/2;
+  double k = x/2.-2.*log(x)/x - 1/x/x/x/2;
+  double r = f/k;
+
+  //std::cout<<"r: "<<r<<std::endl;
+
+  double cpp_scalar_lifetime = lifetime*(1+1/r);
+  double cvp_scalar_lifetime = r*cpp_scalar_lifetime;
+  double cpp_pseudoscalar_lifetime = 1.0e60;
+  double cvp_pseudoscalar_lifetime = 1.0e60;
+
+  //Set chirality-preserving scalar process lifetimes.
+  gsl_matrix* cpp_scalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(cpp_scalar_tau_mat, 1e60); // Set lifetimes to effective stability.
+  //Setting for 4 neutrino case with stable nu_1. 
+  //  gsl_matrix_set(cpp_scalar_tau_mat,0,1,cpp_scalar_lifetime); //tau_21
+  //  gsl_matrix_set(cpp_scalar_tau_mat,0,2,cpp_scalar_lifetime); //tau_31
+  //  gsl_matrix_set(cpp_scalar_tau_mat,1,2,cpp_scalar_lifetime); //tau_32
+  //  gsl_matrix_set(cpp_scalar_tau_mat,0,3,0.); //tau_41
+  //  gsl_matrix_set(cpp_scalar_tau_mat,1,3,0.); //tau_42
+  gsl_matrix_set(cpp_scalar_tau_mat,2,3,cpp_scalar_lifetime); //tau_43
+
+  //Set chirality-violating scalar process lifetimes.
+  gsl_matrix* cvp_scalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(cvp_scalar_tau_mat, 1e60); // Set lifetimes to effective stability.
+  //Setting for 4 neutrino case with stable nu_1. 
+  //  gsl_matrix_set(cvp_scalar_tau_mat,0,1,cvp_scalar_lifetime); //tau_21
+  //  gsl_matrix_set(cvp_scalar_tau_mat,0,2,cvp_scalar_lifetime); //tau_31
+  //  gsl_matrix_set(cvp_scalar_tau_mat,1,2,cvp_scalar_lifetime); //tau_32
+  //  gsl_matrix_set(cvp_scalar_tau_mat,0,3,0.); //tau_41
+  //  gsl_matrix_set(cvp_scalar_tau_mat,1,3,0.); //tau_42
+  gsl_matrix_set(cvp_scalar_tau_mat,2,3,cvp_scalar_lifetime); //tau_43
+
+  //Set chirality-preserving pseudoscalar process lifetimes.
+  gsl_matrix* cpp_pseudoscalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(cpp_pseudoscalar_tau_mat, 1e60); // Set cpp_pseudoscalar_lifetimes to effective stability.
+  //Setting for 4 neutrino case with stable nu_1. 
+  //double cpp_pseudoscalar_lifetime = 1.0e60;
+  //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,0,1,cpp_pseudoscalar_lifetime); //tau_21
+  //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,0,2,cpp_pseudoscalar_lifetime); //tau_31
+  //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,1,2,cpp_pseudoscalar_lifetime); //tau_32
+  //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,0,3,0.); //tau_41
+  //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,1,3,0.); //tau_42
+  gsl_matrix_set(cpp_pseudoscalar_tau_mat,2,3,cpp_pseudoscalar_lifetime); //tau_43
+
+  //Set chirality-violating pseudoscalar process lifetimes.
+  gsl_matrix* cvp_pseudoscalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_all(cvp_pseudoscalar_tau_mat, 1e60); // Set cvp_pseudoscalar_lifetimes to effective stability.
+  //Setting for 4 neutrino case with stable nu_1. 
+  //double cvp_pseudoscalar_lifetime = 1.0e60;
+  //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,0,1,cvp_pseudoscalar_lifetime); //tau_21
+  //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,0,2,cvp_pseudoscalar_lifetime); //tau_31
+  //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,1,2,cvp_pseudoscalar_lifetime); //tau_32
+  //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,0,3,0.); //tau_41
+  //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,1,3,0.); //tau_42
+  gsl_matrix_set(cvp_pseudoscalar_tau_mat,2,3,cvp_pseudoscalar_lifetime); //tau_43
+
+  gsl_matrix* cpp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(cpp_scalar_decay_mat);
+
+	double rate;
+	double colrate;
+	for (size_t col=0; col<numneu; col++)
+	{
+		colrate=0;
+
+		for (size_t row=0; row<col; row++)
+		{	
+			rate = 1.0/gsl_matrix_get(cpp_scalar_tau_mat,row,col);
+			gsl_matrix_set(cpp_scalar_decay_mat,row,col,rate);
+			colrate+=rate*nu_mass[col];
+		}
+
+		gsl_matrix_set(cpp_scalar_decay_mat,col,col,colrate);
+	}	
+
+
+  gsl_matrix* cvp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(cvp_scalar_decay_mat);
+
+	for (size_t col=0; col<numneu; col++)
+	{
+		colrate=0;
+
+		for (size_t row=0; row<col; row++)
+		{	
+			rate = 1.0/gsl_matrix_get(cvp_scalar_tau_mat,row,col);
+			gsl_matrix_set(cvp_scalar_decay_mat,row,col,rate);
+			colrate+=rate*nu_mass[col];
+		}
+
+		gsl_matrix_set(cvp_scalar_decay_mat,col,col,colrate);
+	}	
+
+  gsl_matrix* cpp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(cpp_pseudoscalar_decay_mat);
+
+	for (size_t col=0; col<numneu; col++)
+	{
+		colrate=0;
+
+		for (size_t row=0; row<col; row++)
+		{	
+			rate = 1.0/gsl_matrix_get(cpp_pseudoscalar_tau_mat,row,col);
+			gsl_matrix_set(cpp_pseudoscalar_decay_mat,row,col,rate);
+			colrate+=rate*nu_mass[col];
+		}
+
+		gsl_matrix_set(cpp_pseudoscalar_decay_mat,col,col,colrate);
+	}	
+
+
+  gsl_matrix* cvp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
+  gsl_matrix_set_zero(cvp_pseudoscalar_decay_mat);
+
+	for (size_t col=0; col<numneu; col++)
+	{
+		colrate=0;
+
+		for (size_t row=0; row<col; row++)
+		{	
+			rate = 1.0/gsl_matrix_get(cvp_pseudoscalar_tau_mat,row,col);
+			gsl_matrix_set(cvp_pseudoscalar_decay_mat,row,col,rate);
+			colrate+=rate*nu_mass[col];
+		}
+
+		gsl_matrix_set(cvp_pseudoscalar_decay_mat,col,col,colrate);
+	}	
+
+
+
+/* OLD RATE CALCULATION
   gsl_matrix* tau_mat = gsl_matrix_alloc(numneu,numneu);
   gsl_matrix_set_all(tau_mat, 1e60); // Set lifetimes to effective stability.
-
-	//Setting for 4 neutrino case with stable nu_1.
-//  gsl_matrix_set(tau_mat,0,3,lifetime); //tau_41
-//  gsl_matrix_set(tau_mat,1,3,lifetime); //tau_42
+//Setting for 4 neutrino case with stable nu_1.
   gsl_matrix_set(tau_mat,2,3,lifetime); //tau_43
 
   gsl_matrix* rate_mat = gsl_matrix_alloc(numneu,numneu);
@@ -61,13 +195,16 @@ int main(int argc, char** argv){
 	double colrate;
 	for (size_t col=0; col<numneu; col++){
 		colrate=0;
-		for (size_t row=0; row<col; row++){
+		for (size_t row=0; row<col; row++){	
 			rate = 1.0/gsl_matrix_get(tau_mat,row,col);
 			gsl_matrix_set(rate_mat,row,col,rate);
 			colrate+=rate*nu_mass[col];
 		}
 		gsl_matrix_set(rate_mat,col,col,colrate);
 	}
+*/
+
+
 
   ////////////////////////////////
   // NUSQUIDS DARK ARTS START HERE
@@ -78,11 +215,13 @@ int main(int argc, char** argv){
     std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;
   std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_pion = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),logspace(1.e2*units.GeV,1.e6*units.GeV,150),
                                                                                                            numneu,both,true,
-                                                                                                           rate_mat,nu_mass,mphi);
+                                                                                                           cpp_scalar_decay_mat,cvp_scalar_decay_mat,cpp_pseudoscalar_decay_mat,cvp_pseudoscalar_decay_mat,nu_mass,mphi);
 
   std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_kaon = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),logspace(1.e2*units.GeV,1.e6*units.GeV,150),
                                                                                                            numneu,both,true,
-                                                                                                           rate_mat,nu_mass,mphi);
+                                                                                                           cpp_scalar_decay_mat,cvp_scalar_decay_mat,cpp_pseudoscalar_decay_mat,cvp_pseudoscalar_decay_mat,nu_mass,mphi);
+
+
 
   nusquids_kaon->Set_TauRegeneration(true);
   nusquids_pion->Set_TauRegeneration(true);
@@ -119,6 +258,7 @@ int main(int argc, char** argv){
 
   // setup integration settings
   double error = 1.0e-15;
+  //double error = 1.0e-19;
   nusquids_pion->Set_GSL_step(gsl_odeiv2_step_rkf45);
   nusquids_pion->Set_rel_error(error);
   nusquids_pion->Set_abs_error(error);
@@ -156,9 +296,9 @@ int main(int argc, char** argv){
   }
 
   nusquids_kaon->Set_initial_state(inistate_kaon,flavor);
-  nusquids_kaon->WriteStateHDF5("initial_kaon.hdf5");
+  nusquids_kaon->WriteStateHDF5("/data/user/mmoulai/osc/initial_kaon_"+ std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) +".hdf5");
 
-  std::ofstream ioutput("initial_th24" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
+  std::ofstream ioutput("/data/user/mmoulai/osc/initial_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
   for(double costh : nusquids_kaon->GetCosthRange()){
     for(double enu : nusquids_kaon->GetERange()){
     //for(double log10E = 3.0; log10E < 6.0; log10E +=  0.001 ){
@@ -177,9 +317,10 @@ int main(int argc, char** argv){
   if(!quiet)
     std::cout << "Evolving the kaon fluxes." << std::endl;
   nusquids_kaon->EvolveState();
-  nusquids_kaon->WriteStateHDF5("final_kaon_th24" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".hdf5");
+  nusquids_kaon->WriteStateHDF5("/data/user/mmoulai/osc/final_kaon_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".hdf5");
 
-  std::ofstream output("final_th24" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
+ // std::ofstream output("final_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
+  std::ofstream output("/data/user/mmoulai/osc/final_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
   for(double costh : nusquids_kaon->GetCosthRange()){
     for(double enu : nusquids_kaon->GetERange()){
     //for(double log10E = 3.0; log10E < 6.0; log10E +=  0.001 ){
@@ -219,11 +360,11 @@ int main(int argc, char** argv){
   }
 
   nusquids_pion->Set_initial_state(inistate_pion,flavor);
-  nusquids_pion->WriteStateHDF5("initial_pion.hdf5");
+  nusquids_pion->WriteStateHDF5("/data/user/mmoulai/osc/initial_pion"+ std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) +".hdf5");
   if(!quiet)
     std::cout << "Evolving the pion fluxes." << std::endl;
   nusquids_pion->EvolveState();
-  nusquids_pion->WriteStateHDF5("final_pion_th24" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".hdf5");
+  nusquids_pion->WriteStateHDF5("/data/user/mmoulai/osc/final_pion_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".hdf5");
 
   return 0;
 }
