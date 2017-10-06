@@ -59,12 +59,12 @@ int main(int argc, char** argv){
 
   double cpp_scalar_lifetime = lifetime*(1+1/r);
   double cvp_scalar_lifetime = r*cpp_scalar_lifetime;
-  double cpp_pseudoscalar_lifetime = 1.0e60;
-  double cvp_pseudoscalar_lifetime = 1.0e60;
+  double cpp_pseudoscalar_lifetime = 1.0e90;
+  double cvp_pseudoscalar_lifetime = 1.0e90;
 
   //Set chirality-preserving scalar process lifetimes.
   gsl_matrix* cpp_scalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_all(cpp_scalar_tau_mat, 1e60); // Set lifetimes to effective stability.
+  gsl_matrix_set_all(cpp_scalar_tau_mat, 1e90); // Set lifetimes to effective stability.
   //Setting for 4 neutrino case with stable nu_1. 
   //  gsl_matrix_set(cpp_scalar_tau_mat,0,1,cpp_scalar_lifetime); //tau_21
   //  gsl_matrix_set(cpp_scalar_tau_mat,0,2,cpp_scalar_lifetime); //tau_31
@@ -75,7 +75,7 @@ int main(int argc, char** argv){
 
   //Set chirality-violating scalar process lifetimes.
   gsl_matrix* cvp_scalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_all(cvp_scalar_tau_mat, 1e60); // Set lifetimes to effective stability.
+  gsl_matrix_set_all(cvp_scalar_tau_mat, 1e90); // Set lifetimes to effective stability.
   //Setting for 4 neutrino case with stable nu_1. 
   //  gsl_matrix_set(cvp_scalar_tau_mat,0,1,cvp_scalar_lifetime); //tau_21
   //  gsl_matrix_set(cvp_scalar_tau_mat,0,2,cvp_scalar_lifetime); //tau_31
@@ -86,7 +86,7 @@ int main(int argc, char** argv){
 
   //Set chirality-preserving pseudoscalar process lifetimes.
   gsl_matrix* cpp_pseudoscalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_all(cpp_pseudoscalar_tau_mat, 1e60); // Set cpp_pseudoscalar_lifetimes to effective stability.
+  gsl_matrix_set_all(cpp_pseudoscalar_tau_mat, 1e90); // Set cpp_pseudoscalar_lifetimes to effective stability.
   //Setting for 4 neutrino case with stable nu_1. 
   //double cpp_pseudoscalar_lifetime = 1.0e60;
   //  gsl_matrix_set(cpp_pseudoscalar_tau_mat,0,1,cpp_pseudoscalar_lifetime); //tau_21
@@ -98,7 +98,7 @@ int main(int argc, char** argv){
 
   //Set chirality-violating pseudoscalar process lifetimes.
   gsl_matrix* cvp_pseudoscalar_tau_mat = gsl_matrix_alloc(numneu,numneu);
-  gsl_matrix_set_all(cvp_pseudoscalar_tau_mat, 1e60); // Set cvp_pseudoscalar_lifetimes to effective stability.
+  gsl_matrix_set_all(cvp_pseudoscalar_tau_mat, 1e90); // Set cvp_pseudoscalar_lifetimes to effective stability.
   //Setting for 4 neutrino case with stable nu_1. 
   //double cvp_pseudoscalar_lifetime = 1.0e60;
   //  gsl_matrix_set(cvp_pseudoscalar_tau_mat,0,1,cvp_pseudoscalar_lifetime); //tau_21
@@ -124,6 +124,7 @@ int main(int argc, char** argv){
 			colrate+=rate*nu_mass[col];
 		}
 
+//		std::cout<< "cpp_scalar: "<< colrate << std::endl;
 		gsl_matrix_set(cpp_scalar_decay_mat,col,col,colrate);
 	}	
 
@@ -142,6 +143,7 @@ int main(int argc, char** argv){
 			colrate+=rate*nu_mass[col];
 		}
 
+//		std::cout<< "cvp_scalar: "<< colrate << std::endl;
 		gsl_matrix_set(cvp_scalar_decay_mat,col,col,colrate);
 	}	
 
@@ -159,6 +161,7 @@ int main(int argc, char** argv){
 			colrate+=rate*nu_mass[col];
 		}
 
+//		std::cout<< "cpp_pseudo: "<< colrate << std::endl;
 		gsl_matrix_set(cpp_pseudoscalar_decay_mat,col,col,colrate);
 	}	
 
@@ -176,7 +179,7 @@ int main(int argc, char** argv){
 			gsl_matrix_set(cvp_pseudoscalar_decay_mat,row,col,rate);
 			colrate+=rate*nu_mass[col];
 		}
-
+//		std::cout<< "cvp_pseudo: "<< colrate << std::endl;
 		gsl_matrix_set(cvp_pseudoscalar_decay_mat,col,col,colrate);
 	}	
 
@@ -296,9 +299,9 @@ int main(int argc, char** argv){
   }
 
   nusquids_kaon->Set_initial_state(inistate_kaon,flavor);
-  nusquids_kaon->WriteStateHDF5("/data/user/mmoulai/osc/initial_kaon_"+ std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) +".hdf5");
+//  nusquids_kaon->WriteStateHDF5("/data/user/mmoulai/osc/initial_kaon_"+ std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) +".hdf5");
 
-  std::ofstream ioutput("/data/user/mmoulai/osc/initial_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
+  std::ofstream ioutput("/home/mmoulai/osc_rdo/initial_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
   for(double costh : nusquids_kaon->GetCosthRange()){
     for(double enu : nusquids_kaon->GetERange()){
     //for(double log10E = 3.0; log10E < 6.0; log10E +=  0.001 ){
@@ -317,10 +320,11 @@ int main(int argc, char** argv){
   if(!quiet)
     std::cout << "Evolving the kaon fluxes." << std::endl;
   nusquids_kaon->EvolveState();
-  nusquids_kaon->WriteStateHDF5("/data/user/mmoulai/osc/final_kaon_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".hdf5");
+//  nusquids_kaon->WriteStateHDF5("/data/user/mmoulai/osc/final_kaon_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".hdf5");
 
  // std::ofstream output("final_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
-  std::ofstream output("/data/user/mmoulai/osc/final_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
+  std::ofstream output("/home/mmoulai/osc_rdo/final_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".dat");
+  
   for(double costh : nusquids_kaon->GetCosthRange()){
     for(double enu : nusquids_kaon->GetERange()){
     //for(double log10E = 3.0; log10E < 6.0; log10E +=  0.001 ){
@@ -336,35 +340,35 @@ int main(int argc, char** argv){
   }
   output.close();
 
-  marray<double,4> inistate_pion {nusquids_pion->GetNumCos(),nusquids_pion->GetNumE(),2,numneu};
-  std::fill(inistate_pion.begin(),inistate_pion.end(),0);
-
-  // read file
-  marray<double,2> input_pion_flux = quickread(input_flux_path + "/" + "initial_pion_atmopheric_" + modelname + ".dat");
-
-  for ( int ci = 0 ; ci < nusquids_pion->GetNumCos(); ci++){
-    for ( int ei = 0 ; ei < nusquids_pion->GetNumE(); ei++){
-      double enu = e_range[ei]/units.GeV;
-      double cth = cos_range[ci];
-
-      inistate_pion[ci][ei][0][0] = 0.;
-      inistate_pion[ci][ei][0][1] = input_pion_flux[ci*e_range.size() + ei][2];
-      inistate_pion[ci][ei][0][2] = 0.;
-      inistate_pion[ci][ei][0][3] = 0.;
-
-      inistate_pion[ci][ei][1][0] = 0.;
-      inistate_pion[ci][ei][1][1] = input_pion_flux[ci*e_range.size() + ei][3];
-      inistate_pion[ci][ei][1][2] = 0.;
-      inistate_pion[ci][ei][1][3] = 0.;
-    }
-  }
-
-  nusquids_pion->Set_initial_state(inistate_pion,flavor);
-  nusquids_pion->WriteStateHDF5("/data/user/mmoulai/osc/initial_pion"+ std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) +".hdf5");
-  if(!quiet)
-    std::cout << "Evolving the pion fluxes." << std::endl;
-  nusquids_pion->EvolveState();
-  nusquids_pion->WriteStateHDF5("/data/user/mmoulai/osc/final_pion_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".hdf5");
-
+//  marray<double,4> inistate_pion {nusquids_pion->GetNumCos(),nusquids_pion->GetNumE(),2,numneu};
+//  std::fill(inistate_pion.begin(),inistate_pion.end(),0);
+//
+//  // read file
+//  marray<double,2> input_pion_flux = quickread(input_flux_path + "/" + "initial_pion_atmopheric_" + modelname + ".dat");
+//
+//  for ( int ci = 0 ; ci < nusquids_pion->GetNumCos(); ci++){
+//    for ( int ei = 0 ; ei < nusquids_pion->GetNumE(); ei++){
+//      double enu = e_range[ei]/units.GeV;
+//      double cth = cos_range[ci];
+//
+//      inistate_pion[ci][ei][0][0] = 0.;
+//      inistate_pion[ci][ei][0][1] = input_pion_flux[ci*e_range.size() + ei][2];
+//      inistate_pion[ci][ei][0][2] = 0.;
+//      inistate_pion[ci][ei][0][3] = 0.;
+//
+//      inistate_pion[ci][ei][1][0] = 0.;
+//      inistate_pion[ci][ei][1][1] = input_pion_flux[ci*e_range.size() + ei][3];
+//      inistate_pion[ci][ei][1][2] = 0.;
+//      inistate_pion[ci][ei][1][3] = 0.;
+//    }
+//  }
+//
+//  nusquids_pion->Set_initial_state(inistate_pion,flavor);
+//  nusquids_pion->WriteStateHDF5("/data/user/mmoulai/osc/initial_pion"+ std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) +".hdf5");
+//  if(!quiet)
+//    std::cout << "Evolving the pion fluxes." << std::endl;
+//  nusquids_pion->EvolveState();
+//  nusquids_pion->WriteStateHDF5("/data/user/mmoulai/osc/final_pion_" + std::to_string(nu3mass) + "_" + std::to_string(theta24) + "_" + std::to_string(lifetime) + ".hdf5");
+//
   return 0;
 }

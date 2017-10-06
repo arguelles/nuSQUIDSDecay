@@ -110,10 +110,10 @@ int main(int argc, char* argv[])
 	//------------------------//
 
   //nusqdec.Set_ProgressBar(true);
-  nusqdec.Set_IncoherentInteractions(false);
+  nusqdec.Set_IncoherentInteractions(false);  //turns off and on earth absorption, glashow, ...
   nusqdec.Set_Majorana(true);
   //nusqdec.Set_IncoherentInteractions(true);
-  //nusqdec.Set_OtherRhoTerms(false);
+  //nusqdec.Set_OtherRhoTerms(false); //turns on and off regeneration. 
   nusqdec.Set_OtherRhoTerms(true);
 
 	//------------------------//
