@@ -54,6 +54,7 @@ private:
 	//Chirality Preserving Process or Chirality Violating Process
 	enum{CPP,CVP};
 	//One for each of {CPP,CVP}x{SCALAR,PSEUDOSCALAR}
+	//Parent<->Row, Daughter<->Column (lower triangular)
 	gsl_matrix* rate_matrices[2][2];
 	//One scalar g_ij, one pseudoscalar.
 	gsl_matrix* couplings[2];
@@ -84,7 +85,7 @@ private:
 		//CPP,SCALAR	
 		rate_matrices[CPP][SCALAR] = gsl_matrix_alloc(numneu,numneu); 
 		for (unsigned int i=0; i<numneu; i++){
-			for (unsigned int j=0; j<numneu; j++){
+			for (unsigned int j=0; j<i; j++){
 				double x_ij = m_nu[i]/m_nu[j]; 
 				double g_ij = gsl_matrix_get(couplings[SCALAR],i,j);
 				double rate = (m_nu[i]/(16.0*M_PI))*(1.0/x_ij)*g_ij*g_ij*f(x_ij);
@@ -94,7 +95,7 @@ private:
 		//CPP,PSEUDOSCALAR	
 		rate_matrices[CPP][PSEUDOSCALAR] = gsl_matrix_alloc(numneu,numneu); 
 		for (unsigned int i=0; i<numneu; i++){
-			for (unsigned int j=0; j<numneu; j++){
+			for (unsigned int j=0; j<i; j++){
 				double x_ij = m_nu[i]/m_nu[j]; 
 				double g_ij = gsl_matrix_get(couplings[PSEUDOSCALAR],i,j);
 				double rate = (m_nu[i]/(16.0*M_PI))*(1.0/x_ij)*g_ij*g_ij*g(x_ij);
@@ -104,7 +105,7 @@ private:
 		//CVP,SCALAR	
 		rate_matrices[CVP][SCALAR] = gsl_matrix_alloc(numneu,numneu); 
 		for (unsigned int i=0; i<numneu; i++){
-			for (unsigned int j=0; j<numneu; j++){
+			for (unsigned int j=0; j<i; j++){
 				double x_ij = m_nu[i]/m_nu[j]; 
 				double g_ij = gsl_matrix_get(couplings[SCALAR],i,j);
 				double rate = (m_nu[i]/(16.0*M_PI))*(1.0/x_ij)*g_ij*g_ij*k(x_ij);
@@ -114,7 +115,7 @@ private:
 		//CVP,PSEUDOSCALAR	
 		rate_matrices[CVP][PSEUDOSCALAR] = gsl_matrix_alloc(numneu,numneu); 
 		for (unsigned int i=0; i<numneu; i++){
-			for (unsigned int j=0; j<numneu; j++){
+			for (unsigned int j=0; j<i; j++){
 				double x_ij = m_nu[i]/m_nu[j]; 
 				double g_ij = gsl_matrix_get(couplings[PSEUDOSCALAR],i,j);
 				double rate = (m_nu[i]/(16.0*M_PI))*(1.0/x_ij)*g_ij*g_ij*k(x_ij);
@@ -145,9 +146,9 @@ private:
 					decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
 											*evol_b0_proj[irho][i][ieparent])*
 											(1/(eparent*eparent*edaughter))*
-											((gsl_matrix_get(rate_matrices[CPP][SCALAR],j,i)/gamma)*
+											((gsl_matrix_get(rate_matrices[CPP][SCALAR],i,j)/gamma)*
 											pow(eparent+xij*edaughter,2)/pow(xij+1,2)+
-											(gsl_matrix_get(rate_matrices[CPP][PSEUDOSCALAR],j,i)/gamma)*
+											(gsl_matrix_get(rate_matrices[CPP][PSEUDOSCALAR],i,j)/gamma)*
 											pow(eparent-xij*edaughter,2)/pow(xij-1,2))*
 											(evol_b0_proj[irho][j][iedaughter]);
 				}
@@ -167,9 +168,9 @@ private:
 						decay_regeneration += (delta_eparent)*(state[ieparent].rho[parent_irho]
 												*evol_b0_proj[parent_irho][i][ieparent])*
 												((eparent-edaughter)/(eparent*eparent*edaughter))*
-												((gsl_matrix_get(rate_matrices[CVP][SCALAR],j,i)/gamma)*
+												((gsl_matrix_get(rate_matrices[CVP][SCALAR],i,j)/gamma)*
 												(edaughter*pow(xij,2)-eparent)/pow(xij+1,2)+
-												(gsl_matrix_get(rate_matrices[CVP][PSEUDOSCALAR],j,i)/gamma)*
+												(gsl_matrix_get(rate_matrices[CVP][PSEUDOSCALAR],i,j)/gamma)*
 												(edaughter*pow(xij,2)-eparent)/pow(xij-1,2))*
 												(evol_b0_proj[irho][j][iedaughter]);
 					}
@@ -227,9 +228,11 @@ protected:
 		DT = squids::SU_vector(numneu);
 		for(size_t i = 0; i < numneu; i++){
 			double rate=0;
-			for (size_t chi=0; chi<2; chi++){
-				for (size_t s=0; s<2; s++){			
-					rate+=gsl_matrix_get(rate_matrices[chi][s],i,i);	
+			for(size_t j=0; j<i; j++){
+				for (size_t chi=0; chi<2; chi++){
+					for (size_t s=0; s<2; s++){			
+						rate+=gsl_matrix_get(rate_matrices[chi][s],i,j);	
+					}
 				}
 			}
 			DT += m_nu[i]*rate*squids::SU_vector::Projector(numneu, i);
