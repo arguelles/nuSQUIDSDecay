@@ -30,188 +30,127 @@ Marjon Moulai (marjon@mit.edu)
 Carlos Arguelles (caad@mit.edu)
 Janet Conrad (conrad@mit.edu)
 
+FIXME add reference to paper??
+
 */
+
+//Get mathematical constants.
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 #include <vector>
 #include <iostream>
 #include <nuSQuIDS/nuSQuIDS.h>
 #include "exCross.h"
-#include <math.h>
-
-bool close_enough(double x, double y)
-{
-    double epsilon = std::numeric_limits<double>::epsilon();
-    return (std::abs(x - y) <= epsilon * std::abs(x)
-        && std::abs(x - y) <= epsilon * std::abs(y));
-}
 
 namespace nusquids {
 
 class nuSQUIDSDecay : public nuSQUIDS {
 private:
-	bool majorana = false;
-  bool iincoherent_int = false;
-  bool scalar_decay_parameters_set = false;
-  bool pseudoscalar_decay_parameters_set = false;
-  bool dt_set = false;
-  squids::Const scalar_decay_parameters;
-  squids::Const pseudoscalar_decay_parameters;
-  std::vector<double> scalar_decay_strength;
-  std::vector<double> pseudoscalar_decay_strength;
-  squids::SU_vector DT;
-  std::vector<squids::SU_vector> DT_evol;
+	//------------------------Data------------------------//
+	bool majorana;
+	bool iincoherent_int;
+	enum{SCALAR, PSEUDOSCALAR};
+	//Chirality Preserving Process or Chirality Violating Process
+	enum{CPP,CVP};
+	//One for each of {CPP,CVP}x{SCALAR,PSEUDOSCALAR}
+	gsl_matrix* rate_matrices[2][2];
+	//One scalar g_ij, one pseudoscalar.
+	gsl_matrix* couplings[2];
+	std::vector<double> m_nu;
+	double m_phi;
+	squids::SU_vector DT;
+	std::vector<squids::SU_vector> DT_evol;
 
-  gsl_matrix* cpp_scalar_decay_mat;
-  gsl_matrix* cvp_scalar_decay_mat;
-  gsl_matrix* cpp_pseudoscalar_decay_mat;
-  gsl_matrix* cvp_pseudoscalar_decay_mat;
+	//----------------------Functions---------------------//
+	//Trying to keep the "model-specific" functions in private,
+	//and have moved all functions related to more general decay models
+	//to protected.
 
-  std::vector<double> m_nu;
-  double m_phi;
+	//Define auxiliary functions (4a),(4b),(4c) in [1]
+	double f(double x){	
+		double result =  x/2.0 + 2.0 + (2.0/x)*log(x) - 2/(x*x) - 1.0/(2.0*x*x*x);
+		return result;
+	double g(double x){	
+		double result =  x/2.0 - 2.0 + (2.0/x)*log(x) + 2/(x*x) - 1.0/(2.0*x*x*x);
+		return result;
+	double k(double x){	
+		double result =  x/2.0 - (2.0/x)*log(x) - 1.0/(2.0*x*x*x);
+		return result;
 
+	void Compute_Rate_Matrices(){
+		//Compute *rest frame* decay rate matrices.
+		
+		//CPP,SCALAR	
+		rate_matrices[CPP][SCALAR] = gsl_matrix_alloc(numneu,numneu); 
+		for (unsigned int i=0; i<numneu; i++){
+			for (unsigned int j=0; j<numneu; j++){
+				double x_ij = m_nu[i]/m_nu[j]; 
+				double g_ij = gsl_matrix_get(couplings[SCALAR],i,j);
+				double rate = (m_nu[i]/(16.0*M_PI))*(1.0/x_ij)*g_ij*g_ij*f(x_ij);
+				gsl_matrix_set(rate_matrices[CPP][SCALAR],i,j,rate);
+			}
+		}
+		//CPP,PSEUDOSCALAR	
+		rate_matrices[CPP][PSEUDOSCALAR] = gsl_matrix_alloc(numneu,numneu); 
+		for (unsigned int i=0; i<numneu; i++){
+			for (unsigned int j=0; j<numneu; j++){
+				double x_ij = m_nu[i]/m_nu[j]; 
+				double g_ij = gsl_matrix_get(couplings[PSEUDOSCALAR],i,j);
+				double rate = (m_nu[i]/(16.0*M_PI))*(1.0/x_ij)*g_ij*g_ij*g(x_ij);
+				gsl_matrix_set(rate_matrices[CPP][PSEUDOSCALAR],i,j,rate);
+			}
+		}
+		//CVP,SCALAR	
+		rate_matrices[CVP][SCALAR] = gsl_matrix_alloc(numneu,numneu); 
+		for (unsigned int i=0; i<numneu; i++){
+			for (unsigned int j=0; j<numneu; j++){
+				double x_ij = m_nu[i]/m_nu[j]; 
+				double g_ij = gsl_matrix_get(couplings[SCALAR],i,j);
+				double rate = (m_nu[i]/(16.0*M_PI))*(1.0/x_ij)*g_ij*g_ij*k(x_ij);
+				gsl_matrix_set(rate_matrices[CVP][SCALAR],i,j,rate);
+			}
+		}
+		//CVP,PSEUDOSCALAR	
+		rate_matrices[CVP][PSEUDOSCALAR] = gsl_matrix_alloc(numneu,numneu); 
+		for (unsigned int i=0; i<numneu; i++){
+			for (unsigned int j=0; j<numneu; j++){
+				double x_ij = m_nu[i]/m_nu[j]; 
+				double g_ij = gsl_matrix_get(couplings[PSEUDOSCALAR],i,j);
+				double rate = (m_nu[i]/(16.0*M_PI))*(1.0/x_ij)*g_ij*g_ij*k(x_ij);
+				gsl_matrix_set(rate_matrices[CVP][PSEUDOSCALAR],i,j,rate);
+			}
+		}
+	}
 
-  double pstar(unsigned int i, unsigned int j) const {
-    if (m_nu[i] < m_nu[j] + m_phi) {
-		//std::cout << "I,J: " << i << " " << j << std::endl;
-		//std::cout << "MI,MJ: " << m_nu[i] << " " << m_nu[j] << std::endl;
-		//std::cout << "MPHI: " << m_phi << std::endl;
-      throw std::runtime_error("non physical case");
-    }
-    double retval = (1.0 / (2.0 * m_nu[i])) *
-                    sqrt((pow(m_nu[i], 2) - pow(m_nu[j] + m_phi, 2)) *
-                         (pow(m_nu[i], 2) - pow(m_nu[j] - m_phi, 2)));
-    return retval;
-  }
-
-  unsigned int nearest_element(double value) const {
-
-    std::vector<double> diffs(E_range.size());
-    for (size_t i = 0; i < E_range.size(); i++) {
-      diffs[i] = fabs(value - E_range[i]);
-    }
-
-    return std::distance(diffs.begin(),
-                         std::min_element(diffs.begin(), diffs.end()));
-  }
-
-protected:
-  void AddToPreDerive(double x) {
-    if (!(scalar_decay_parameters_set&&pseudoscalar_decay_parameters_set&&dt_set))
-      throw std::runtime_error("decay parameters not set");
-    for (int ei = 0; ei < ne; ei++) {
-      // asumming same mass hamiltonian for neutrinos/antineutrinos
-      squids::SU_vector h0 = H0(E_range[ei], 0);
-      DT_evol[ei] = DT.Evolve(h0, (x - Get_t_initial()));
-    }
-  }
-
-  /*
-  void AddToWriteHDF5(hid_t hdf5_loc_id) const {
-    // here we write the new parameters to be saved in the HDF5 file
-    hsize_t dim[1]{1};
-
-    // creating arrays to save stuff
-    H5LTmake_dataset(hdf5_loc_id, "decay_strength", 1, dim, H5T_NATIVE_DOUBLE,
-                     0);
-    H5LTmake_dataset(hdf5_loc_id, "mixing_angles", 1, dim, H5T_NATIVE_DOUBLE,
-                     0);
-    H5LTmake_dataset(hdf5_loc_id, "CP_phases", 1, dim, H5T_NATIVE_DOUBLE, 0);
-
-    // save decay strength
-    for (size_t i = 0; i < numneu; i++) {
-      std::string decay_strength_label = "lam" + std::to_string(i + 1);
-      H5LTset_attribute_double(hdf5_loc_id, "decay_strength",
-                               decay_strength_label.c_str(),
-                               &(decay_strength[i]), 1);
-    }
-
-    // save decay mixing angles
-    for (unsigned int i = 0; i < numneu; i++) {
-      for (unsigned int j = i + 1; j < numneu; j++) {
-        std::string th_label =
-            "th" + std::to_string(i + 1) + std::to_string(j + 1);
-        double th_value = decay_parameters.GetMixingAngle(i, j);
-        H5LTset_attribute_double(hdf5_loc_id, "mixing_angles", th_label.c_str(),
-                                 &th_value, 1);
-
-        std::string delta_label =
-            "delta" + std::to_string(i + 1) + std::to_string(j + 1);
-        double delta_value = decay_parameters.GetPhase(i, j);
-        H5LTset_attribute_double(hdf5_loc_id, "CP_phases", delta_label.c_str(),
-                                 &delta_value, 1);
-      }
-    }
-  }
-
-  void AddToReadHDF5(hid_t hdf5_loc_id) {
-    // read and set mixing parameters
-    for (unsigned int i = 0; i < numneu; i++) {
-      for (unsigned int j = i + 1; j < numneu; j++) {
-        double th_value;
-        std::string th_label =
-            "th" + std::to_string(i + 1) + std::to_string(j + 1);
-        H5LTget_attribute_double(hdf5_loc_id, "mixing_angles", th_label.c_str(),
-                                 &th_value);
-        decay_parameters.SetMixingAngle(i, j, th_value);
-
-        double delta_value;
-        std::string delta_label =
-            "delta" + std::to_string(i + 1) + std::to_string(j + 1);
-        H5LTget_attribute_double(hdf5_loc_id, "CP_phases", delta_label.c_str(),
-                                 &delta_value);
-        decay_parameters.SetPhase(i, j, delta_value);
-      }
-    }
-
-    // strength vector reset
-    decay_strength = std::vector<double>(numneu);
-    for (size_t i = 0; i < numneu; i++) {
-      std::string decay_strength_label = "lam" + std::to_string(i + 1);
-      H5LTget_attribute_double(hdf5_loc_id, "decay_strength",
-                               decay_strength_label.c_str(),
-                               &(decay_strength[i]));
-    }
-  }
-  */
-
-  squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
-    if (iincoherent_int)
-      return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
-    else
-	  //std::cout << "IE: " << ie << "  E: " << E_range[ie] << std::endl;
-	  //printmat(DT_evol[ie] * (0.5 / E_range[ie]),4,"GAMMA");
-	  //std::cout << std::endl;
-      return DT_evol[ie] * (0.5 / E_range[ie]);
-  }
-
-  squids::SU_vector InteractionsRho(unsigned int iedaughter, unsigned int irho) const {
-    squids::SU_vector decay_regeneration(numneu);
-    // here one needs to fill in the extra decay regeneration terms
-    double edaughter = E_range[iedaughter];
-    // j-daughter index
-    for (size_t j = 0; j < numneu; j++) {
-      // i-parent index
-    	for (size_t i = j+1; i < numneu; i++) {
+	squids::SU_vector InteractionsRho(unsigned int iedaughter, unsigned int irho) const {
+		squids::SU_vector decay_regeneration(numneu);
+		// here one needs to fill in the extra decay regeneration terms
+		double edaughter = E_range[iedaughter];
+		// j-daughter index
+		for (size_t j = 0; j < numneu; j++) {
+			// i-parent index
+			for (size_t i = j+1; i < numneu; i++) {
 				//parent-to-daughter mass ratio
 				double xij = m_nu[i]/m_nu[j];
 				//boost factor to lab frame
 				double ieparent_high = nearest_element(edaughter*xij);
 				// i-energy (parent energy) index 
 				//left-rectangular integral approximation
-    		for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
+				for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
 					double eparent = E_range[ieparent];
 					double gamma = eparent/m_nu[i];
 					double delta_eparent = E_range[ieparent+1]-E_range[ieparent];
 					//combining scalar and pseudoscalar contributions
 					decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
 											*evol_b0_proj[irho][i][ieparent])*
-                      (1/(eparent*eparent*edaughter))*
-											((gsl_matrix_get(cpp_scalar_decay_mat,j,i)/gamma)*
+											(1/(eparent*eparent*edaughter))*
+											((gsl_matrix_get(rate_matrices[CPP][SCALAR],j,i)/gamma)*
 											pow(eparent+xij*edaughter,2)/pow(xij+1,2)+
-											(gsl_matrix_get(cpp_pseudoscalar_decay_mat,j,i)/gamma)*
+											(gsl_matrix_get(rate_matrices[CPP][PSEUDOSCALAR],j,i)/gamma)*
 											pow(eparent-xij*edaughter,2)/pow(xij-1,2))*
-                      (evol_b0_proj[irho][j][iedaughter]);
-    		}
+											(evol_b0_proj[irho][j][iedaughter]);
+				}
 
 				//Include chirality-violating term if neutrino is majorana.
 				if(majorana){
@@ -220,186 +159,207 @@ protected:
 					if (irho==1) parent_irho=0;
 					// i-energy (parent energy) index 
 					//left-rectangular integral approximation
-	    		for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
+					for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
 						double eparent = E_range[ieparent];
 						double gamma = eparent/m_nu[i];
 						double delta_eparent = E_range[ieparent+1]-E_range[ieparent];
 						//combining scalar and pseudoscalar contributions
 						decay_regeneration += (delta_eparent)*(state[ieparent].rho[parent_irho]
 												*evol_b0_proj[parent_irho][i][ieparent])*
-	                      ((eparent-edaughter)/(eparent*eparent*edaughter))*
-												((gsl_matrix_get(cvp_scalar_decay_mat,j,i)/gamma)*
+												((eparent-edaughter)/(eparent*eparent*edaughter))*
+												((gsl_matrix_get(rate_matrices[CVP][SCALAR],j,i)/gamma)*
 												(edaughter*pow(xij,2)-eparent)/pow(xij+1,2)+
-												(gsl_matrix_get(cvp_pseudoscalar_decay_mat,j,i)/gamma)*
+												(gsl_matrix_get(rate_matrices[CVP][PSEUDOSCALAR],j,i)/gamma)*
 												(edaughter*pow(xij,2)-eparent)/pow(xij-1,2))*
-	                      (evol_b0_proj[irho][j][iedaughter]);
-	    		}
+												(evol_b0_proj[irho][j][iedaughter]);
+					}
 				}
 			}
 		}
-    //  do not modify after this line
-    if (iincoherent_int)
-      return nuSQUIDS::InteractionsRho(iedaughter, irho) + decay_regeneration;
-    else
-      return decay_regeneration;
-  }
+		//	do not modify after this line
+		if (iincoherent_int)
+			return nuSQUIDS::InteractionsRho(iedaughter, irho) + decay_regeneration;
+		else
+			return decay_regeneration;
+	}
 
-public:
-  nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
-                NeutrinoType NT_ = NeutrinoType::both,
-                bool iinteraction_ = true)
-      : nuSQUIDS(e_nodes, numneu_, NT_, iinteraction_){
-    //             std::make_shared<
-    //                 nusquids::NeutrinoDISCrossSectionsFromTablesExtended>()) {
-    // just allocate some matrices
-    DT_evol.resize(ne);
-    for (int ei = 0; ei < ne; ei++) {
-      DT_evol[ei] = squids::SU_vector(nsun);
-    }
+protected:
+	unsigned int nearest_element(double value) const {
+		std::vector<double> diffs(E_range.size());
+		for (size_t i = 0; i < E_range.size(); i++) {
+			diffs[i] = fabs(value - E_range[i]);
+		}
+		return std::distance(diffs.begin(),std::min_element(diffs.begin(), diffs.end()));
+	}
+	
+	//FIXME: REMOVE IN RELEASE
+	void printmat(const squids::SU_vector mat, unsigned int dim,std::string mname) const {
+		std::cout << "Matrix: " << mname << std::endl;
+		unsigned int i, j;
+		for (i = 0; i < dim; i++) {
+			for (j = 0; j < dim; j++) {
+				std::cout << (mat)[j + dim * i] << " ";
+			}
+			std::cout << std::endl;
+		}
+		std::cout << std::endl;
+	}
 
-    // allocating space for neutrino masses
-    m_nu.resize(numneu);
-
-    // allocating memory for rate matrix
-    cpp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-    cvp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-    cpp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-    cvp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-  }
-
-  nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
-                NeutrinoType NT_, bool iinteraction_,
-                gsl_matrix * cpp_scalar_decay_matrix_, 
-                gsl_matrix * cvp_scalar_decay_matrix_, 
-                gsl_matrix * cpp_pseudoscalar_decay_matrix_, 
-                gsl_matrix * cvp_pseudoscalar_decay_matrix_, 
-								std::vector<double> m_nu_, double m_phi_):
-                nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
-      m_nu=m_nu_;
-      m_phi=m_phi_;
-    	cpp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-    	cvp_scalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-    	cpp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-    	cvp_pseudoscalar_decay_mat = gsl_matrix_alloc(numneu,numneu);
-      Set_Scalar_Matrices(cpp_scalar_decay_matrix_,cvp_scalar_decay_matrix_);
-      Set_Pseudoscalar_Matrices(cpp_pseudoscalar_decay_matrix_,cvp_pseudoscalar_decay_matrix_);
-	  Compute_DT();
-      iincoherent_int=true;
-  }
-
-  ~nuSQUIDSDecay(){
-    gsl_matrix_free(cpp_scalar_decay_mat);
-    gsl_matrix_free(cvp_scalar_decay_mat);
-    gsl_matrix_free(cpp_pseudoscalar_decay_mat);
-    gsl_matrix_free(cvp_pseudoscalar_decay_mat);
-  }
-
-  // move constructor
-  nuSQUIDSDecay(nuSQUIDSDecay&& other):
-  nuSQUIDS(std::move(other)),
-  iincoherent_int(other.iincoherent_int),
-  majorana(other.majorana),
-  scalar_decay_parameters_set(other.scalar_decay_parameters_set),
-  scalar_decay_parameters(std::move(other.scalar_decay_parameters)),
-  pseudoscalar_decay_parameters_set(other.pseudoscalar_decay_parameters_set),
-  pseudoscalar_decay_parameters(std::move(other.pseudoscalar_decay_parameters)),
-  scalar_decay_strength(other.scalar_decay_strength),
-  pseudoscalar_decay_strength(other.pseudoscalar_decay_strength),
-  DT(other.DT),
-	dt_set(std::move(other.dt_set)),
-  DT_evol(other.DT_evol),
-  m_nu(other.m_nu),
-  m_phi(other.m_phi)
-  {
-    if(other.scalar_decay_parameters_set&&other.pseudoscalar_decay_parameters_set){
-      cpp_scalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
-      cvp_scalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
-      cpp_pseudoscalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
-      cvp_pseudoscalar_decay_mat = gsl_matrix_alloc(other.numneu,other.numneu);
-      gsl_matrix_memcpy(cpp_scalar_decay_mat,other.cpp_scalar_decay_mat);
-      gsl_matrix_memcpy(cvp_scalar_decay_mat,other.cvp_scalar_decay_mat);
-      gsl_matrix_memcpy(cpp_pseudoscalar_decay_mat,other.cpp_pseudoscalar_decay_mat);
-      gsl_matrix_memcpy(cvp_pseudoscalar_decay_mat,other.cvp_pseudoscalar_decay_mat);
-    }
-  }
-
-  void Set_Scalar_Matrices(gsl_matrix* mcpp,gsl_matrix* mcvp){
-
-    if (cpp_scalar_decay_mat->size1 != mcpp->size1){
-      throw std::runtime_error("size1 mismatch while constructing decay matrix.");
-    }
-    if (cpp_scalar_decay_mat->size2 != mcpp->size2){
-      throw std::runtime_error("size2 mismatch while constructing decay matrix.");
-    }
-    if (cpp_scalar_decay_mat->size1 != mcvp->size1){
-      throw std::runtime_error("size1 mismatch while constructing decay matrix.");
-    }
-    if (cpp_scalar_decay_mat->size2 != mcvp->size2){
-      throw std::runtime_error("size2 mismatch while constructing decay matrix.");
-    }
-
-    gsl_matrix_memcpy(cpp_scalar_decay_mat,mcpp);
-    gsl_matrix_memcpy(cvp_scalar_decay_mat,mcvp);
-
-    scalar_decay_parameters_set=true;
-  }
-
-  void Set_Pseudoscalar_Matrices(gsl_matrix* mcpp,gsl_matrix* mcvp){
-
-    if (cpp_pseudoscalar_decay_mat->size1 != mcpp->size1){
-      throw std::runtime_error("size1 mismatch while constructing decay matrix.");
-    }
-    if (cpp_pseudoscalar_decay_mat->size2 != mcpp->size2){
-      throw std::runtime_error("size2 mismatch while constructing decay matrix.");
-    }
-    if (cpp_pseudoscalar_decay_mat->size1 != mcvp->size1){
-      throw std::runtime_error("size1 mismatch while constructing decay matrix.");
-    }
-    if (cpp_pseudoscalar_decay_mat->size2 != mcvp->size2){
-      throw std::runtime_error("size2 mismatch while constructing decay matrix.");
-    }
-
-    gsl_matrix_memcpy(cpp_pseudoscalar_decay_mat,mcpp);
-    gsl_matrix_memcpy(cvp_pseudoscalar_decay_mat,mcvp);
-
-    pseudoscalar_decay_parameters_set=true;
-  }
+	void Check_Matrix_Size(gsl_matrix* m1, gsl_matrix* m2){
+		if (m1->size1 != m2->size1){
+			throw std::runtime_error("size1 mismatch while copying matrix.");
+		}
+		if (m1->size2 != m2->size2){
+			throw std::runtime_error("size2 mismatch while copying matrix.");
+		}
+	}
+	void Set_Rate_Matrices(gsl_matrix  *rate_matrices_[2][2]){
+		for (unsigned int chi=0; chi<2; chi++){
+			for (unsigned int s=0; s<2; s++){			
+				rate_matrices[chi][s] = gsl_matrix_alloc(numneu,numneu);
+				Check_Matrix_Size(rate_matrices[chi][s],rate_matrices_[chi][s]);
+				gsl_matrix_memcpy(rate_matrices[chi][s],rate_matrices_[chi][s]);
+			}
+		}
+	}
 
 	void Compute_DT(){
-    DT = squids::SU_vector(numneu);
-    for(size_t i = 0; i < numneu; i++){
-      double entry = gsl_matrix_get(cpp_scalar_decay_mat,i,i)+gsl_matrix_get(cpp_pseudoscalar_decay_mat,i,i)+
-		   			gsl_matrix_get(cvp_scalar_decay_mat,i,i)+gsl_matrix_get(cvp_pseudoscalar_decay_mat,i,i);
-      DT += entry*squids::SU_vector::Projector(numneu, i);
-    }
-		dt_set=true;
+		DT = squids::SU_vector(numneu);
+		for(size_t i = 0; i < numneu; i++){
+			double rate=0;
+			for (size_t chi=0; chi<2; chi++){
+				for (size_t s=0; s<2; s++){			
+					rate+=gsl_matrix_get(rate_matrices[chi][s],i,i);	
+				}
+			}
+			DT += m_nu[i]*rate*squids::SU_vector::Projector(numneu, i);
+		}
+	}
+
+	void AddToPreDerive(double x) {
+		for (int ei = 0; ei < ne; ei++) {
+			// asumming same mass hamiltonian for neutrinos/antineutrinos
+			squids::SU_vector h0 = H0(E_range[ei], 0);
+			DT_evol[ei] = DT.Evolve(h0, (x - Get_t_initial()));
+		}
+	}
+
+	squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
+		if (iincoherent_int)
+			return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
+		else
+			return DT_evol[ie] * (0.5 / E_range[ie]);
 	}
 
 
-  void Set_IncoherentInteractions(bool opt) { iincoherent_int = opt; }
+public:
+	//Preferred constructor (foolproof)
+	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
+					NeutrinoType NT_, bool iinteraction_,
+					std::vector<double> m_nu_, double m_phi_,
+					gsl_matrix *couplings_[], 
+					bool iincoherent_int, bool majorana_):
+					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
+		m_nu=m_nu_;
+		m_phi=m_phi_;
+		Set_Couplings(couplings_);
+		Compute_Rate_Matrices();
+		Compute_DT();
 
-  void Set_Majorana(bool opt) { majorana = opt; }
+		iincoherent_int=iincoherent_int_;
+		majorana=majorana_;
+	}
 
-  void Set_m_nu(double mass, unsigned int state) { m_nu[state] = mass; }
+	//Our constructor (allowing for NuSQuIDS Atmospheric Wrapping)
+	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
+					NeutrinoType NT_, bool iinteraction_,
+					std::vector<double> m_nu_, double m_phi_,
+					gsl_matrix *rate_matrices_[][]):
+					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
+		m_nu=m_nu_;
+		m_phi=m_phi_;
+		Set_Rate_Matrices(rate_matrices_);
+		Compute_DT();
 
-  void Set_m_phi(double mass) { m_phi = mass; }
+		//Default values
+		iincoherent_int=false;
+		majorana=false;
+	}
 
-  void printmat(const squids::SU_vector mat, unsigned int dim,
-                std::string mname) const {
-    std::cout << "Matrix: " << mname << std::endl;
+	//Move constructor
+	nuSQUIDSDecay(nuSQUIDSDecay&& other):
+	nuSQUIDS(std::move(other)), numneu(other.numneu),
+	iincoherent_int(other.iincoherent_int),
+	majorana(other.majorana), DT(other.DT),
+	DT_evol(other.DT_evol), m_nu(other.m_nu),
+	m_phi(other.m_phi), rate_matrices(other.rate_matrices),
+	couplings(other.couplings)
+	{
+		for (unsigned int s=0; s<2; s++){			
+			couplings[s] = gsl_matrix_alloc(numneu,numneu);
+			gsl_matrix_memcpy(couplings[s],other.couplings[s]);
+			for (unsigned int chi=0; chi<2; chi++){
+				rate_matrices[chi][s] = gsl_matrix_alloc(numneu,numneu);
+				gsl_matrix_memcpy(rate_matrices[chi][s],other.rate_matrices[chi][s]);
+			}
+		}
+	}
 
-    unsigned int i, j;
+	//Destructor
+	~nuSQUIDSDecay(){
+		for (size_t s=0; s<2; s++){			
+			gsl_matrix_free(couplings[s]);
+			for (size_t chi=0; chi<2; chi++){
+				gsl_matrix_free(rate_matrices[chi][s]);
+			}
+		}
+	}
 
-    for (i = 0; i < dim; i++) {
-      for (j = 0; j < dim; j++) {
-        std::cout << (mat)[j + dim * i] << " ";
-      }
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-  }
-};
+	//--------------------------------------------------------//
+	//! Toggles additional neutrino interactions.	 
+	/*! 
+		The switch, iincoherent_int, toggles additional interactions
+		in both GammaRho() and InteractionsRho(). These interactions are
+		described in the nuSQUIDS documentation under the corresponding
+		function names. If the switch is set to true, these terms are 
+		added to the decay Gamma matrix and decay "R" matrix. If set 
+		to false, then the only interaction in play is neutrino decay.
+	\param opt: the boolean value to toggle interactions.
+	*/
+	void SetIncoherentInteractions(bool opt) { iincoherent_int = opt; }
 
+	//--------------------------------------------------------//
+	//! Toggles decay regeneration.		 
+	/*!
+		The switch is internal to SQUIDS/nuSQUIDS. If set to true, the 
+		terms returned by InteractionsRho() are present in the evolution
+		equation. If not, there is no regeneration. It is perhaps helpful
+		to include a truth table below.
+		iincoherent_int | DecayRegeneration | Physics
+		--------------- | ----------------- | -------------------------------
+		True						| True							| All terms included. 
+		True						| False						 | All except regeneration terms.
+		False					 | True							| Gamma + R (decay with regen only).
+		False					 | False						 | Gamma only (decay only without regen).
+	\param opt: the boolean value to toggle regeneration.
+	*/
+	void SetDecayRegeneration(bool opt) { Set_OtherRhoTerms(opt); }
+
+
+
+
+	void Set_Majorana(bool opt) { majorana = opt; }
+	void Set_m_nu(double mass, unsigned int state) { m_nu[state] = mass; }
+	void Set_m_phi(double mass) { m_phi = mass; }
+
+	void Set_Couplings(gsl_matrix  *couplings_[2]){
+		for (unsigned int s=0; s<2; s++){
+			couplings[s] = gsl_matrix_alloc(numneu,numneu);
+			Check_Matrix_Size(couplings[s],couplings_[s]);
+			gsl_matrix_memcpy(couplings[s],couplings_[s]);
+		}
+	}
+
+}; // close nusquids class definition
 } // close nusquids namespace
-
 #endif // nusquidslv_h
