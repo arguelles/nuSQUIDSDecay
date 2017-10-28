@@ -63,7 +63,7 @@ private:
 
 	//! Toggles additional incoherent interactions
 	/*!
-	See SetDecayRegeneration() for details.
+	See Set_DecayRegeneration() for details.
 	*/
 	bool iinteractions=false;
 
@@ -439,7 +439,7 @@ public:
 	\param e_nodes is the array of neutrino propagation energies.
 	\param numneu_ is the number of neutrino states in the system. Defaults to 3.
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
-	\param iinteraction_ is a switch for incoherent interactions. See SetDecayRegeneration() .
+	\param iinteraction_ is a switch for incoherent interactions. See Set_DecayRegeneration() .
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
 					NeutrinoType NT_ = NeutrinoType::both,
@@ -461,7 +461,7 @@ public:
 	Calls the basic constructor, and then sets neutrino masses, phi mass,
 	the coupling matrices, as well as switches for incoherent interactions,
 	decay regeneration, and majorana/dirac neutrinos (See SetIncoherentInteractions(),
-	SetDecayRegeneration(), and SetMajorana()). The constructor then calls
+	Set_DecayRegeneration(), and Set_Majorana()). The constructor then calls
 	Compute_Rate_Matrices() to calculate decay rates as functions of masses and couplings,
 	and then calls Compute_DT() to calculate the "Gamma" matrix decay term as a function
 	of masses and decay rates.
@@ -474,8 +474,8 @@ public:
 	\param e_nodes is the array of neutrino propagation energies.
 	\param numneu_ is the number of neutrino states in the system. Defaults to 3.
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
-	\param iinteraction_ is a switch for incoherent interactions. See SetDecayRegeneration() .
-	\param decay_regen_ is a switch for decay regeneration. See SetDecayRegeneration()
+	\param iinteraction_ is a switch for incoherent interactions. See Set_DecayRegeneration() .
+	\param decay_regen_ is a switch for decay regeneration. See Set_DecayRegeneration()
 	\param majorana_ is a switch for Majorana/Dirac neutrinos. See #majorana .
 	\param m_nu_ is a vector of neutrino masses. See #m_nu .
 	\param couplings_ is a length-two array of gsl_matrix* pointers. See #couplings .
@@ -492,7 +492,7 @@ public:
 		Compute_DT();
 		
 		iinteractions=iinteraction_;
-		SetDecayRegeneration(decay_regen_);
+		Set_DecayRegeneration(decay_regen_);
 		majorana=majorana_;
 	}
 
@@ -501,7 +501,7 @@ public:
 	Calls the basic constructor, and then sets neutrino masses,
 	the four partial rate matrices, as well as switches for incoherent interactions,
 	decay regeneration, and majorana/dirac neutrinos (See SetIncoherentInteractions(),
-	SetDecayRegeneration(), and SetMajorana()). The constructor then allocates memory
+	Set_DecayRegeneration(), and Set_Majorana()). The constructor then allocates memory
 	to the unused #couplings and calls Compute_DT() to calculate the "Gamma" matrix
 	decay term as a function of masses and decay rates.
 	This constructor is used in the analysis in [1] because it allows the user to input
@@ -514,8 +514,8 @@ public:
 	\param e_nodes is the array of neutrino propagation energies.
 	\param numneu_ is the number of neutrino states in the system. Defaults to 3.
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
-	\param iinteraction_ is a switch for incoherent interactions. See SetDecayRegeneration() .
-	\param decay_regen_ is a switch for decay regeneration. See SetDecayRegeneration()
+	\param iinteraction_ is a switch for incoherent interactions. See Set_DecayRegeneration() .
+	\param decay_regen_ is a switch for decay regeneration. See Set_DecayRegeneration()
 	\param majorana_ is a switch for Majorana/Dirac neutrinos. See #majorana .
 	\param m_nu_ is a vector of neutrino masses. See #m_nu .
 	\param rate_matrices_ is a two-by-two array of gsl_matrix* pointers. See #rate_matrices .
@@ -536,7 +536,7 @@ public:
 		Compute_DT();
 
 		iinteractions=iinteraction_;
-		SetDecayRegeneration(decay_regen_);
+		Set_DecayRegeneration(decay_regen_);
 		majorana=majorana_;
 	}
 
