@@ -33,7 +33,7 @@ FIXME cite flux source??
 using namespace nusquids;
 
 //Convenience function to write initial and final fluxes to a text file.
-void WriteFlux(std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids, double nu3mass, double theta24, double lifetime, std::string fname){
+void WriteFlux(std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids, std::string fname){
 	enum {NU_E,NU_MU,NU_TAU};
 	enum {NEUTRINO,ANTINEUTRINO};
 	std::ofstream ioutput("../output/" + fname + ".dat");
@@ -85,7 +85,7 @@ int main(int argc, char** argv){
 	bool oscillogram = true;
 	bool quiet = false;
 	// getting input parameters
-	double nu3mass, theta24, lifetime;
+	double nu3mass, theta24;
 	nu3mass = 1.0; //Set the mass of the sterile neutrino (eV)
 	theta24 = 1.0; //Set the mixing angle between sterile and tau flavors.
 
@@ -194,24 +194,24 @@ int main(int argc, char** argv){
 	ReadFlux(nusquids_kaon,inistate_kaon,std::string("kaon"),input_flux_path,modelname,units.GeV);
 	nusquids_kaon->Set_initial_state(inistate_kaon,flavor);
 	//Write initial flux to text file.
-	if(oscillogram){WriteFlux(nusquids_kaon,nu3mass,theta24,lifetime, std::string("kaon_initial"));}
+	if(oscillogram){WriteFlux(nusquids_kaon, std::string("kaon_initial"));}
 	//Evolve flux through the earth. 
 	if(!quiet){std::cout << "Evolving the kaon fluxes." << std::endl;}
 	nusquids_kaon->EvolveState();
 	//Write final flux to text file.
-	if(oscillogram){WriteFlux(nusquids_kaon,nu3mass,theta24,lifetime, std::string("kaon_final"));}
+	if(oscillogram){WriteFlux(nusquids_kaon, std::string("kaon_final"));}
 
 	//Read pion flux and initialize nusquids object with it.
 	marray<double,4> inistate_pion {nusquids_pion->GetNumCos(),nusquids_pion->GetNumE(),2,numneu};
 	ReadFlux(nusquids_pion,inistate_pion,std::string("pion"),input_flux_path,modelname,units.GeV);
 	nusquids_pion->Set_initial_state(inistate_pion,flavor);
 	//Write initial flux to text file.
-	if(oscillogram){WriteFlux(nusquids_pion,nu3mass,theta24,lifetime, std::string("pion_initial"));}
+	if(oscillogram){WriteFlux(nusquids_pion, std::string("pion_initial"));}
 	//Evolve flux through the earth. 
 	if(!quiet){std::cout << "Evolving the pion fluxes." << std::endl;}
 	nusquids_pion->EvolveState();
 	//Write final flux to text file.
-	if(oscillogram){WriteFlux(nusquids_pion,nu3mass,theta24,lifetime, std::string("pion_final"));}
+	if(oscillogram){WriteFlux(nusquids_pion, std::string("pion_final"));}
 
 	//Free memory for couplings 
 	for (size_t s=0; s<2; s++){				 
