@@ -475,7 +475,7 @@ public:
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
 	\param iinteraction_ FIXME: Carlos: does this just get fed to the parent constructor? 
 	\param m_nu_ is a vector of neutrino masses. See #m_nu .
-	\param m_phi_ is the mass of the scalar 'phi' particle. See #m_phi .
+	\param m_phi_ is the mass of the 'phi' particle. See #m_phi .
 	\param couplings_ is a length-two array of gsl_matrix* pointers. See #couplings .
 	\param iincoherent_int_ is a switch for incoherent interactions. See SetIncoherentInteractions() .
 	\param decay_regen_ is a switch for decay regeneration. See SetDecayRegeneration()
@@ -518,7 +518,7 @@ public:
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
 	\param iinteraction_ FIXME: Carlos: does this just get fed to the parent constructor? 
 	\param m_nu_ is a vector of neutrino masses. See #m_nu .
-	\param m_phi_ is the mass of the scalar 'phi' particle. See #m_phi .
+	\param m_phi_ is the mass of the 'phi' particle. See #m_phi .
 	\param rate_matrices_ is a two-by-two array of gsl_matrix* pointers. See #rate_matrices .
 	\param iincoherent_int_ is a switch for incoherent interactions. See SetIncoherentInteractions() .
 	\param decay_regen_ is a switch for decay regeneration. See SetDecayRegeneration()
@@ -621,7 +621,7 @@ public:
 	*/
 	void Set_m_nu(double mass, unsigned int state) { m_nu[state] = mass; }
 
-	//! Set the mass of the scalar 'phi' particle. 
+	//! Set the mass of the 'phi' particle. 
 	/*!
 	See #m_phi
 	\param mass is the mass value.
