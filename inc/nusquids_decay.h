@@ -48,14 +48,6 @@ namespace nusquids {
 class nuSQUIDSDecay : public nuSQUIDS {
 private:
 	//-----------------------------Variables----------------------------//
-	//! A switch for incoherent interactions.
-	/*!
-	This does not control decay regeneration, although it is
-	an incoherent process. Decay regen. is controlled by SetDecayRegeneration(). 
-	Default: false.
-	*/
-	bool iincoherent_int=false;
-
 	//! Toggles Majorana or Dirac neutrinos
 	/*!
 	If neutrinos are Dirac, the chirality violating process
@@ -68,6 +60,12 @@ private:
 	Default: false.
 	*/
 	bool majorana=false;
+
+	//! Toggles additional incoherent interactions
+	/*!
+	See SetDecayRegeneration() for details.
+	*/
+	bool iinteractions=false;
 
 	enum{SCALAR, PSEUDOSCALAR};
 	//Chirality Preserving Process or Chirality Violating Process
@@ -200,7 +198,7 @@ private:
 	//! Returns a sum of all Hamiltonian interaction terms except DT, the "Gamma" matrix.
 	/*! 
 	The contribution from decay regeneration (the "R" terms from eqns. (18) and (19) in [1]) is computed,
-	and then additional incoherent interactions are added internally by nuSQuIDS if iincoherent_int is true.
+	and then additional incoherent interactions are added internally by nuSQuIDS if iinteractions is true.
 	These additional interaction regeneration terms are described in the nuSQUIDS documentation under "InteractionsRho".
 	If majorana is true, there are regeneration contributions from both CVP and CPP. Otherwise, there is no contribution 
 	because right-handed neutrinos are sterile.
@@ -273,7 +271,7 @@ private:
 			}
 		}
 		//Toggling additional regeneration terms (from nuSQuIDS).
-		if (iincoherent_int)
+		if (iinteractions)
 			return nuSQUIDS::InteractionsRho(iedaughter, irho) + decay_regeneration;
 		else
 			return decay_regeneration;
@@ -383,7 +381,7 @@ protected:
 		//Include chirality preserving processes only in majorana case.
 		int chi_min;
 		if(majorana){ chi_min=0;}
-		else(){ chi_min=1;}
+		else{ chi_min=1;}
 		//Sum over parent mass states.
 		for(size_t i = 0; i < numneu; i++){
 			double rate=0;
@@ -416,7 +414,7 @@ protected:
 
     //! Returns the hamiltonian term corresponding to the "Gamma" matrix with additional terms from nuSQuIDS.
     /*! 
-    If iincoherent_int switch is set to false, then this returns only the Gamma matrix
+    If interaction switch is set to false, then this returns only the Gamma matrix
     corresponding to neutrino decay (DT_evol properly weighted). If the switch is set 
 	to true, this function returns the sum of the decay Gamma matrix and additional neutrino-matter
     interactions described in the nuSQUIDS documentation under "GammaRho".
@@ -425,7 +423,7 @@ protected:
     \return the modified "Gamma" matrix.
     */
 	squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
-		if (iincoherent_int)
+		if (iinteractions)
 			return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
 		else
 			return DT_evol[ie] * (0.5 / E_range[ie]);
@@ -442,7 +440,7 @@ public:
 	\param e_nodes is the array of neutrino propagation energies.
 	\param numneu_ is the number of neutrino states in the system. Defaults to 3.
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
-	\param iinteraction_ FIXME: Carlos: does this just get fed to the parent constructor? 
+	\param iinteraction_ is a switch for incoherent interactions. See SetDecayRegeneration() .
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
 					NeutrinoType NT_ = NeutrinoType::both,
@@ -477,26 +475,26 @@ public:
 	\param e_nodes is the array of neutrino propagation energies.
 	\param numneu_ is the number of neutrino states in the system. Defaults to 3.
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
-	\param iinteraction_ FIXME: Carlos: does this just get fed to the parent constructor? 
-	\param m_nu_ is a vector of neutrino masses. See #m_nu .
-	\param couplings_ is a length-two array of gsl_matrix* pointers. See #couplings .
-	\param iincoherent_int_ is a switch for incoherent interactions. See SetIncoherentInteractions() .
+	\param iinteraction_ is a switch for incoherent interactions. See SetDecayRegeneration() .
 	\param decay_regen_ is a switch for decay regeneration. See SetDecayRegeneration()
 	\param majorana_ is a switch for Majorana/Dirac neutrinos. See #majorana .
+	\param m_nu_ is a vector of neutrino masses. See #m_nu .
+	\param couplings_ is a length-two array of gsl_matrix* pointers. See #couplings .
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
 					NeutrinoType NT_, bool iinteraction_,
-					std::vector<double> m_nu_, gsl_matrix* couplings_[2], 
-					bool iincoherent_int_, bool decay_regen_, bool majorana_):
+					bool decay_regen_, bool majorana_,
+					std::vector<double> m_nu_, gsl_matrix* couplings_[2] 
+					):
 					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
 		m_nu=m_nu_;
 		Set_Couplings(couplings_);
 		Compute_Rate_Matrices();
 		Compute_DT();
-
-		iincoherent_int=iincoherent_int_;
-		majorana=majorana_;
+		
+		iinteractions=iinteraction_;
 		SetDecayRegeneration(decay_regen_);
+		majorana=majorana_;
 	}
 
 	//! nuSQUIDSDecay "partial rate" constructor.  	
@@ -517,18 +515,18 @@ public:
 	\param e_nodes is the array of neutrino propagation energies.
 	\param numneu_ is the number of neutrino states in the system. Defaults to 3.
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
-	\param iinteraction_ FIXME: Carlos: does this just get fed to the parent constructor? 
-	\param m_nu_ is a vector of neutrino masses. See #m_nu .
-	\param rate_matrices_ is a two-by-two array of gsl_matrix* pointers. See #rate_matrices .
-	\param iincoherent_int_ is a switch for incoherent interactions. See SetIncoherentInteractions() .
+	\param iinteraction_ is a switch for incoherent interactions. See SetDecayRegeneration() .
 	\param decay_regen_ is a switch for decay regeneration. See SetDecayRegeneration()
 	\param majorana_ is a switch for Majorana/Dirac neutrinos. See #majorana .
+	\param m_nu_ is a vector of neutrino masses. See #m_nu .
+	\param rate_matrices_ is a two-by-two array of gsl_matrix* pointers. See #rate_matrices .
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
 					NeutrinoType NT_, bool iinteraction_,
+					bool decay_regen_, bool majorana_,
 					std::vector<double> m_nu_,
-					gsl_matrix* rate_matrices_[2][2],
-					bool iincoherent_int_, bool decay_regen_, bool majorana_):
+					gsl_matrix* rate_matrices_[2][2]
+					):
 					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
 
 		m_nu=m_nu_;
@@ -538,9 +536,9 @@ public:
 		}
 		Compute_DT();
 
-        iincoherent_int=iincoherent_int_;
-        majorana=majorana_;
+		iinteractions=iinteraction_;
         SetDecayRegeneration(decay_regen_);
+        majorana=majorana_;
 	}
 
 	//! nuSQUIDSDecay move constructor.  	
@@ -550,9 +548,9 @@ public:
 	*/
 	nuSQUIDSDecay(nuSQUIDSDecay&& other):
 	nuSQUIDS(std::move(other)), 
-	iincoherent_int(other.iincoherent_int),
+	iinteractions(other.iinteractions),
 	majorana(other.majorana), DT(other.DT),
-	DT_evol(other.DT_evol), m_nu(other.m_nu),
+	DT_evol(other.DT_evol), m_nu(other.m_nu)
 	{
 		for (unsigned int s=0; s<2; s++){			
 			couplings[s] = gsl_matrix_alloc(other.numneu,other.numneu);
@@ -577,24 +575,20 @@ public:
 		}
 	}
 
-	//! Toggles additional neutrino interactions.	 
-	/*! 
-		The switch, iincoherent_int, toggles additional interactions
-		in both GammaRho() and InteractionsRho(). These interactions are
-		described in the nuSQUIDS documentation under the corresponding
-		function names. If the switch is set to true, these terms are 
-		added to the decay Gamma matrix and decay "R" matrix. If set 
-		to false, then the only interaction in play is neutrino decay.
-	\param opt is the boolean value to toggle interactions.
-	*/
-	void SetIncoherentInteractions(bool opt) { iincoherent_int = opt; }
-
 	//! Toggles decay regeneration.		 
 	/*!
 		The switch is internal to SQUIDS/nuSQUIDS. If set to true, the 
 		terms returned by InteractionsRho() are present in the evolution
-		equation. If not, there is no regeneration. Consider the table below.
-		iincoherent_int | DecayRegeneration | Physics
+		equation. If not, there is no regeneration.
+		The switch, iinteractions (set in the constructor, also nuSQuIDS internal), 
+		toggles additional interactions in both GammaRho() and InteractionsRho(). 
+		These interactions are described in the nuSQUIDS documentation 
+		under the corresponding function names. If the switch is set to true, 
+		these terms are added to the decay Gamma matrix and decay "R" matrix. 
+		If set to false, then the only interaction in play is neutrino decay.
+		To clarify the behavior of NuSQuIDSDecay in the various 
+		iinteractions/DecayRegeneration cases, consider the table below.
+		iinteractions | DecayRegeneration | Physics
 		--------------- | ----------------- | -------------------------------
 		True						| True							| All terms included. 
 		True						| False						 | All except regeneration terms.

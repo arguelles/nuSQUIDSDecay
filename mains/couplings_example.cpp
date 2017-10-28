@@ -88,12 +88,11 @@ int main(int argc, char** argv){
 	//Set scalar and pseudoscalar couplings.
 	double scalar_coupling=1.0;
 	double pseudoscalar_coupling=2.0;
-	//FIXME
 
 	//Toggle majorana/dirac, incoherent interactions, and decay regeneration.
-	bool majorana=true;
-	bool incoherent_int=true;
+	bool iinteraction=true;
 	bool decay_regen=true;
+	bool majorana=true;
 
 	//Path for input fluxes
 	std::string input_flux_path = "../fluxes";
@@ -131,12 +130,12 @@ int main(int argc, char** argv){
 	//The first two arguments (linspaces) define ranges of cos(zenith) and energy over which to simulate, respectively.
 	if(!quiet){std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;}
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_pion = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
-																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,true,
-																nu_mass,couplings,incoherent_int,decay_regen,majorana);
+																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,
+																decay_regen,majorana,nu_mass,couplings);
 
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_kaon = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
-																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,true,
-																nu_mass,couplings,incoherent_int,decay_regen,majorana);
+																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,
+																decay_regen,majorana,nu_mass,couplings);
 
 	//Include tau regeneration in simulation.
 	nusquids_kaon->Set_TauRegeneration(true);
