@@ -495,7 +495,7 @@ public:
 
 		iincoherent_int=iincoherent_int_;
 		majorana=majorana_;
-		SetDecayRegeneration(decay_regen_);
+		Set_DecayRegeneration(decay_regen_);
 	}
 
 	//! nuSQUIDSDecay "partial rate" constructor.  	
@@ -541,7 +541,7 @@ public:
 
         iincoherent_int=iincoherent_int_;
         majorana=majorana_;
-        SetDecayRegeneration(decay_regen_);
+        Set_DecayRegeneration(decay_regen_);
 	}
 
 	//! nuSQUIDSDecay move constructor.  	
@@ -589,7 +589,7 @@ public:
 		to false, then the only interaction in play is neutrino decay.
 	\param opt is the boolean value to toggle interactions.
 	*/
-	void SetIncoherentInteractions(bool opt) { iincoherent_int = opt; }
+	void Set_IncoherentInteractions(bool opt) { iincoherent_int = opt; }
 
 	//! Toggles decay regeneration.		 
 	/*!
@@ -604,7 +604,7 @@ public:
 		False					 | False						 | Gamma only (decay only without regen).
 	\param opt is the boolean value to toggle regeneration.
 	*/
-	void SetDecayRegeneration(bool opt) { Set_OtherRhoTerms(opt); }
+	void Set_DecayRegeneration(bool opt) { Set_OtherRhoTerms(opt); }
 
 	//! Toggles Majorana or Dirac neutrinos
 	/*!
