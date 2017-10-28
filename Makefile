@@ -1,7 +1,6 @@
 # FLAGS
 CFLAGS= -O3 -fPIC -std=c++11
-#CFLAGS+= -g -fsanitize=address
-CFLAGS+= -I./inc `pkg-config --cflags squids nusquids hdf5` 
+CFLAGS+= -I./inc `pkg-config --cflags squids nusquids hdf5`
 LDFLAGS+= `pkg-config --libs squids nusquids hdf5` -lpthread
 
 all: mains/exCross.o  mains/partial_rate_example mains/couplings_example

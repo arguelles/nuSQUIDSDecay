@@ -1,5 +1,5 @@
-#ifndef nusquidslv_H
-#define nusquidslv_H
+#ifndef nusquids_decay_H
+#define nusquids_decay_H
 
 /*
 Copyright © 2016 Alexander Moss, Marjon Moulai, Carlos Arguelles, and Janet
@@ -77,8 +77,8 @@ private:
 	//! The coupling matrices, g_ij.
 	/*!
 	There are two coupling matrices one for each element of
-	{SCALAR,PSEUDOSCALAR}. The row index of each 
-	corresponds to the parent mass state, and the column to 
+	{SCALAR,PSEUDOSCALAR}. The row index of each
+	corresponds to the parent mass state, and the column to
 	the daughter. The matrix will then be strictly lower triangular.
 	*/
 	gsl_matrix* couplings[2];
@@ -86,9 +86,9 @@ private:
 	//! The decay rate matrices, Gamma_ij.
 	/*!
 	There are four rate matrices, one for each element of
-	{CPP,CVP}x{SCALAR,PSEUDOSCALAR}. The row index of each 
-	corresponds to the parent mass state, and the column to 
-	the daughter. The matrix is then strictly lower-triangular.  
+	{CPP,CVP}x{SCALAR,PSEUDOSCALAR}. The row index of each
+	corresponds to the parent mass state, and the column to
+	the daughter. The matrix is then strictly lower-triangular.
 	These decay rates are computed in the *rest frame* of the
 	parent. Eqns. (2) and (3) in [1] are lab-frame, and differ
 	by a factor of 1/gamma.
@@ -97,7 +97,7 @@ private:
 
 	//! Vector of neutrino masses.
 	/*!
-	The lightest mass may be zero, but all other neutrino masses 
+	The lightest mass may be zero, but all other neutrino masses
 	must be non-zero.
 	*/
 	std::vector<double> m_nu;
@@ -117,48 +117,48 @@ private:
 	//and have moved all functions related to more general decay models
 	//to protected.
 
-	//! Kinematic funtion m_j*f(x_i/x_j), related to equation (4a) in [1]. 
-	/*! 
-	In this and the other auxiliary kinematic function definitions, the modification 
-	is to make the m_j->0 limit numerically well defined. Luckily, the cmath pow() 
+	//! Kinematic funtion m_j*f(x_i/x_j), related to equation (4a) in [1].
+	/*!
+	In this and the other auxiliary kinematic function definitions, the modification
+	is to make the m_j->0 limit numerically well defined. Luckily, the cmath pow()
 	function implicitly takes the limit: pow(0,0)=1, so we're happy.
 	\param m_i is the parent neutrino mass.
 	\param m_j is the daughter neutrino mass.
 	*/
-	double f(double m_i, double m_j){	
+	double f(double m_i, double m_j) const {
 		double result = m_i/2.0 + 2.0*m_j + (2.0*m_j/m_i)*(m_j*log(m_i) - log(pow(m_j,m_j))) - (2.0*m_j*m_j*m_j/(m_i*m_i)) - (m_j*m_j*m_j*m_j/(2.0*m_i*m_i*m_i));
 		return result;
 	}
-	//! Kinematic funtion m_j*g(x_i/x_j), related to equation (4b) in [1]. 
-	/*! 
+	//! Kinematic funtion m_j*g(x_i/x_j), related to equation (4b) in [1].
+	/*!
 	\param m_i is the parent neutrino mass.
 	\param m_j is the daughter neutrino mass.
 	*/
-	double g(double m_i, double m_j){	
+	double g(double m_i, double m_j) const {
 		double result = m_i/2.0 - 2.0*m_j + (2.0*m_j/m_i)*(m_j*log(m_i) - log(pow(m_j,m_j))) + (2.0*m_j*m_j*m_j/(m_i*m_i)) - (m_j*m_j*m_j*m_j/(2.0*m_i*m_i*m_i));
 		return result;
 	}
-	//! Kinematic funtion m_j*k(x_i/x_j), related to equation (4c) in [1]. 
-	/*! 
+	//! Kinematic funtion m_j*k(x_i/x_j), related to equation (4c) in [1].
+	/*!
 	\param m_i is the parent neutrino mass.
 	\param m_j is the daughter neutrino mass.
 	*/
-	double k(double m_i, double m_j){	
+	double k(double m_i, double m_j) const {
 		double result = m_i/2.0 - (2.0*m_j/m_i)*(m_j*log(m_i) - log(pow(m_j,m_j))) - (m_j*m_j*m_j*m_j/(2.0*m_i*m_i*m_i));
 		return result;
 	}
 
-	//! Computes the four decay rate matrices using the coupling matrices couplings[]. 
-	/*! 
+	//! Computes the four decay rate matrices using the coupling matrices couplings[].
+	/*!
 	This function implements equations (2) and (3) of [1] to generate the four partial
 	rate matrices corresponding to each decay channel in {CPP,CVP}x{SCALAR,PSEUDOSCALAR}.
 	Decay rates are in the rest frame of the parent neutrino.
 	*/
 	void Compute_Rate_Matrices(){
 		//Compute *rest frame* decay rate matrices.
-		
-		//CPP,SCALAR	
-		rate_matrices[CPP][SCALAR] = gsl_matrix_alloc(numneu,numneu); 
+
+		//CPP,SCALAR
+		rate_matrices[CPP][SCALAR] = gsl_matrix_alloc(numneu,numneu);
 		for (unsigned int i=0; i<numneu; i++){
 			for (unsigned int j=0; j<i; j++){
 				double g_ij = gsl_matrix_get(couplings[SCALAR],i,j);
@@ -166,8 +166,8 @@ private:
 				gsl_matrix_set(rate_matrices[CPP][SCALAR],i,j,rate);
 			}
 		}
-		//CPP,PSEUDOSCALAR	
-		rate_matrices[CPP][PSEUDOSCALAR] = gsl_matrix_alloc(numneu,numneu); 
+		//CPP,PSEUDOSCALAR
+		rate_matrices[CPP][PSEUDOSCALAR] = gsl_matrix_alloc(numneu,numneu);
 		for (unsigned int i=0; i<numneu; i++){
 			for (unsigned int j=0; j<i; j++){
 				double g_ij = gsl_matrix_get(couplings[PSEUDOSCALAR],i,j);
@@ -175,8 +175,8 @@ private:
 				gsl_matrix_set(rate_matrices[CPP][PSEUDOSCALAR],i,j,rate);
 			}
 		}
-		//CVP,SCALAR	
-		rate_matrices[CVP][SCALAR] = gsl_matrix_alloc(numneu,numneu); 
+		//CVP,SCALAR
+		rate_matrices[CVP][SCALAR] = gsl_matrix_alloc(numneu,numneu);
 		for (unsigned int i=0; i<numneu; i++){
 			for (unsigned int j=0; j<i; j++){
 				double g_ij = gsl_matrix_get(couplings[SCALAR],i,j);
@@ -184,8 +184,8 @@ private:
 				gsl_matrix_set(rate_matrices[CVP][SCALAR],i,j,rate);
 			}
 		}
-		//CVP,PSEUDOSCALAR	
-		rate_matrices[CVP][PSEUDOSCALAR] = gsl_matrix_alloc(numneu,numneu); 
+		//CVP,PSEUDOSCALAR
+		rate_matrices[CVP][PSEUDOSCALAR] = gsl_matrix_alloc(numneu,numneu);
 		for (unsigned int i=0; i<numneu; i++){
 			for (unsigned int j=0; j<i; j++){
 				double g_ij = gsl_matrix_get(couplings[PSEUDOSCALAR],i,j);
@@ -196,7 +196,7 @@ private:
 	}
 
 	//! Returns a sum of all Hamiltonian interaction terms except DT, the "Gamma" matrix.
-	/*! 
+	/*!
 	The contribution from decay regeneration (the "R" terms from eqns. (18) and (19) in [1]) is computed,
 	and then additional incoherent interactions are added internally by nuSQuIDS if iinteractions is true.
 	These additional interaction regeneration terms are described in the nuSQUIDS documentation under "InteractionsRho".
@@ -205,7 +205,7 @@ private:
 	Note that the contribution from CVP in the majorana case converts neutrinos to antineutrinos.
 	\param iedaughter is the energy index of the daughter density matrix.
 	\param irho is the neutrino/antineutrino index of the desired matrix.
-	\return the incoherent interaction matrix. 
+	\return the incoherent interaction matrix.
 	*/
 
 	squids::SU_vector InteractionsRho(unsigned int iedaughter, unsigned int irho) const {
@@ -219,15 +219,15 @@ private:
 			// states heavier than m_i
 			for (size_t i = j+1; i < numneu; i++) {
 				/*
-				Decay kinematics dictate an integral of the regeneration 
+				Decay kinematics dictate an integral of the regeneration
 				contribution over parent momenta in the range [edaughter,edaughter*x_ij^2]
-				See (18) and (19) in [1]. Here, we approximate the integral with a 
+				See (18) and (19) in [1]. Here, we approximate the integral with a
 				left-rectangular sum over energy bins in this range.
 				*/
 				//parent-to-daughter mass ratio
 				double xij = m_nu[i]/m_nu[j];
 				double ieparent_high = nearest_element(edaughter*xij*xij);
-				// i-energy (parent energy) index 
+				// i-energy (parent energy) index
 				//left-rectangular integral approximation
 				for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
 					//get parent neutrino energy
@@ -251,7 +251,7 @@ private:
 					unsigned int parent_irho;
 					if (irho==0) parent_irho=1;
 					if (irho==1) parent_irho=0;
-					// i-energy (parent energy) index 
+					// i-energy (parent energy) index
 					//left-rectangular integral approximation
 					for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
 						double eparent = E_range[ieparent];
@@ -278,10 +278,10 @@ private:
 	}
 
 protected:
-	//! Given a double, finds the nearest double in the E_range array.	
-	/*! 
+	//! Given a double, finds the nearest double in the E_range array.
+	/*!
 	Given a double argument, searches E_range for the element of smallest
-	absolute value difference from the argument. 
+	absolute value difference from the argument.
 	\param value is the argument whose closest match in E_range we're looking for.
 	\return the index of the closest element in E_range to value.
 	*/
@@ -292,9 +292,9 @@ protected:
 		}
 		return std::distance(diffs.begin(),std::min_element(diffs.begin(), diffs.end()));
 	}
-	
-	//! Prints the contents of a squids::SU_vector. (Utility)	
-	/*! 
+
+	//! Prints the contents of a squids::SU_vector. (Utility)
+	/*!
 	\param mat is the SU_vector.
 	\param dim is its dimension (assume square).
 	\param mname is the name of the matrix to print with it's entries.
@@ -311,8 +311,8 @@ protected:
 		std::cout << std::endl;
 	}
 
-	//! Prints the contents of a gsl_matrix. (Utility)	
-	/*! 
+	//! Prints the contents of a gsl_matrix. (Utility)
+	/*!
 	\param mat is the gsl_matrix.
 	\param dim is its dimension (assume square).
 	\param mname is the name of the matrix to print with it's entries.
@@ -329,12 +329,12 @@ protected:
 		std::cout << std::endl;
 	}
 
-	//! Checks a pair of gsl_matrices for matching row and column dimensions.	
-	/*! 
+	//! Checks a pair of gsl_matrices for matching row and column dimensions.
+	/*!
 	\param m1 the first matrix.
 	\param m2 the second matrix.
 	*/
-	void Check_Matrix_Size(gsl_matrix* m1, gsl_matrix* m2){
+	void Check_Matrix_Size(gsl_matrix* m1, gsl_matrix* m2) const {
 		if (m1->size1 != m2->size1){
 			throw std::runtime_error("size1 mismatch while copying matrix.");
 		}
@@ -343,19 +343,18 @@ protected:
 		}
 	}
 
-
-	//! Copies a rank-two array of gsl_matrices to the rate_matrices data member.	
-	/*! 
+	//! Copies a rank-two array of gsl_matrices to the rate_matrices data member.
+	/*!
 	First allocates empty gsl_matrices to the rate_matrices[][] pointer-array,
 	then compares source and destination matrix dimensions, then copies.
-	This is only used internally to set the rate_matrices data member. Except 
+	This is only used internally to set the rate_matrices data member. Except
 	in the case of the special "partial rates" constructor, the user should provide
 	a *coupling* matrix, and the rate matrices will be computed internally.
 	\param rate_matrices_ the input array.
 	*/
 	void Set_Rate_Matrices(gsl_matrix* rate_matrices_[2][2]){
 		for (unsigned int chi=0; chi<2; chi++){
-			for (unsigned int s=0; s<2; s++){			
+			for (unsigned int s=0; s<2; s++){
 				rate_matrices[chi][s] = gsl_matrix_alloc(numneu,numneu);
 				Check_Matrix_Size(rate_matrices[chi][s],rate_matrices_[chi][s]);
 				gsl_matrix_memcpy(rate_matrices[chi][s],rate_matrices_[chi][s]);
@@ -363,11 +362,11 @@ protected:
 		}
 	}
 
-	//! Computes DT, the "Gamma" term in the Hamiltonian, using rate_matrices.	
-	/*! 
+	//! Computes DT, the "Gamma" term in the Hamiltonian, using rate_matrices.
+	/*!
 	In the mass basis, DT is a diagonal matrix such that the (i,i) entry
 	is the sum over all rate matrices of their ith rows, weighted by m_i,
-	the corresponding neutrino mass. Essentially, this matrix encodes the 
+	the corresponding neutrino mass. Essentially, this matrix encodes the
 	total rate of decay of mass state i to all lighter states, including
 	all decay channels ({CPP,CVP}x{SCALAR,PSEUDOSCALAR}) if the neutrino
 	is majorana, and only the channels ({CVP}x{SCALAR,PSEUDOSCALAR}) if 
@@ -394,14 +393,14 @@ protected:
 					}
 				}
 			}
-			//Weight rate by m_i, and add a projector to the m_i state, 
+			//Weight rate by m_i, and add a projector to the m_i state,
 			//multiplied by the weighted rate, to DT.
 			DT += m_nu[i]*rate*squids::SU_vector::Projector(numneu, i);
 		}
 	}
 
-	//! Evolves the interaction picture DT Hamiltonian term.	
-	/*! 
+	//! Evolves the interaction picture DT Hamiltonian term.
+	/*!
 	\param x the target evolution time.
 	*/
 	void AddToPreDerive(double x) {
@@ -431,8 +430,8 @@ protected:
 
 
 public:
-	//! Basic nuSQUIDSDecay constructor.  	
-	/*! 
+	//! Basic nuSQUIDSDecay constructor.
+	/*!
 	Calls nuSQUIDS parent constructor and allocates memory for member
 	matrices and neutrino masses. This constuctor should not be called
 	directly. It is just an encapsulation of basic funcitonality to be
@@ -457,21 +456,21 @@ public:
 		m_nu.resize(numneu);
 	}
 
-	//! nuSQUIDSDecay "coupling" constructor.  	
-	/*! 
-	Calls the basic constructor, and then sets neutrino masses, 
+	//! nuSQUIDSDecay "coupling" constructor.
+	/*!
+	Calls the basic constructor, and then sets neutrino masses, phi mass,
 	the coupling matrices, as well as switches for incoherent interactions,
 	decay regeneration, and majorana/dirac neutrinos (See SetIncoherentInteractions(),
-	SetDecayRegeneration(), and SetMajorana()). The constructor then calls 
+	SetDecayRegeneration(), and SetMajorana()). The constructor then calls
 	Compute_Rate_Matrices() to calculate decay rates as functions of masses and couplings,
 	and then calls Compute_DT() to calculate the "Gamma" matrix decay term as a function
 	of masses and decay rates.
 	This constructor is preferred because it allows the user to input Lagrangian parameters
-	only, as opposed to manually computing partial decay rate matrices and passing them to 
+	only, as opposed to manually computing partial decay rate matrices and passing them to
 	nuSQuIDS decay. This both simplifies the interface, and guarantees that only physical
 	decay rate matrices are used in the simulations (an arbitrary selection of rate matrices
 	might not be possible to generate with a Lagrangian of the form (1) in [1]).
- 
+
 	\param e_nodes is the array of neutrino propagation energies.
 	\param numneu_ is the number of neutrino states in the system. Defaults to 3.
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
@@ -497,13 +496,13 @@ public:
 		majorana=majorana_;
 	}
 
-	//! nuSQUIDSDecay "partial rate" constructor.  	
-	/*! 
+	//! nuSQUIDSDecay "partial rate" constructor.
+	/*!
 	Calls the basic constructor, and then sets neutrino masses,
 	the four partial rate matrices, as well as switches for incoherent interactions,
 	decay regeneration, and majorana/dirac neutrinos (See SetIncoherentInteractions(),
 	SetDecayRegeneration(), and SetMajorana()). The constructor then allocates memory
-	to the unused #couplings and calls Compute_DT() to calculate the "Gamma" matrix 
+	to the unused #couplings and calls Compute_DT() to calculate the "Gamma" matrix
 	decay term as a function of masses and decay rates.
 	This constructor is used in the analysis in [1] because it allows the user to input
 	partial decay rates directly, which is useful for characterizing the effect of
@@ -537,22 +536,22 @@ public:
 		Compute_DT();
 
 		iinteractions=iinteraction_;
-        SetDecayRegeneration(decay_regen_);
-        majorana=majorana_;
+		SetDecayRegeneration(decay_regen_);
+		majorana=majorana_;
 	}
 
-	//! nuSQUIDSDecay move constructor.  	
-	/*! 
-	This constructor is of technical utility in wrapping a nuSQuIDSDecay object in 
+	//! nuSQUIDSDecay move constructor.
+	/*!
+	This constructor is of technical utility in wrapping a nuSQuIDSDecay object in
 	a nuSQuIDS atmospheric object. See the example scripts.
 	*/
 	nuSQUIDSDecay(nuSQUIDSDecay&& other):
-	nuSQUIDS(std::move(other)), 
+	nuSQUIDS(std::move(other)),
 	iinteractions(other.iinteractions),
 	majorana(other.majorana), DT(other.DT),
 	DT_evol(other.DT_evol), m_nu(other.m_nu)
 	{
-		for (unsigned int s=0; s<2; s++){			
+		for (unsigned int s=0; s<2; s++){
 			couplings[s] = gsl_matrix_alloc(other.numneu,other.numneu);
 			gsl_matrix_memcpy(couplings[s],other.couplings[s]);
 			for (unsigned int chi=0; chi<2; chi++){
@@ -562,12 +561,12 @@ public:
 		}
 	}
 
-	//! nuSQUIDSDecay destructor. 	
-	/*! 
+	//! nuSQUIDSDecay destructor.
+	/*!
 	Freeing memory allocated to gsl_matrices.
 	*/
 	~nuSQUIDSDecay(){
-		for (size_t s=0; s<2; s++){			
+		for (size_t s=0; s<2; s++){
 			gsl_matrix_free(couplings[s]);
 			for (size_t chi=0; chi<2; chi++){
 				gsl_matrix_free(rate_matrices[chi][s]);
@@ -575,9 +574,9 @@ public:
 		}
 	}
 
-	//! Toggles decay regeneration.		 
+	//! Toggles decay regeneration.
 	/*!
-		The switch is internal to SQUIDS/nuSQUIDS. If set to true, the 
+		The switch is internal to SQUIDS/nuSQUIDS. If set to true, the
 		terms returned by InteractionsRho() are present in the evolution
 		equation. If not, there is no regeneration.
 		The switch, iinteractions (set in the constructor, also nuSQuIDS internal), 
@@ -590,13 +589,13 @@ public:
 		iinteractions/DecayRegeneration cases, consider the table below.
 		iinteractions | DecayRegeneration | Physics
 		--------------- | ----------------- | -------------------------------
-		True						| True							| All terms included. 
+		True						| True							| All terms included.
 		True						| False						 | All except regeneration terms.
 		False					 | True							| Gamma + R (decay with regen only).
 		False					 | False						 | Gamma only (decay only without regen).
 	\param opt is the boolean value to toggle regeneration.
 	*/
-	void SetDecayRegeneration(bool opt) { Set_OtherRhoTerms(opt); }
+	void Set_DecayRegeneration(bool opt) { Set_OtherRhoTerms(opt); }
 
 	//! Toggles Majorana or Dirac neutrinos
 	/*!
@@ -605,15 +604,15 @@ public:
 	*/
 	void Set_Majorana(bool opt) { majorana = opt; }
 
-	//! Set the mass of a particular mass state. 
+	//! Set the mass of a particular mass state.
 	/*!
 	See #m_nu
 	\param mass is the mass value.
-	\param state is the mass state index. 
+	\param state is the mass state index.
 	*/
 	void Set_m_nu(double mass, unsigned int state) { m_nu[state] = mass; }
 
-	//! Set the Lagrangian couplings between mass states. 
+	//! Set the Lagrangian couplings between mass states.
 	/*!
 	First allocate memory for two gsl_matrices to the couplings[] pointer array.
 	Then, check source and target matrix dimensions match, and copy the matrices.
@@ -630,4 +629,4 @@ public:
 
 }; // close nusquids class definition
 } // close nusquids namespace
-#endif // nusquidslv_h
+#endif // nusquids_decay_h
