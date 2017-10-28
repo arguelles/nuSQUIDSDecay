@@ -1,5 +1,5 @@
-#ifndef nusquidslv_H
-#define nusquidslv_H
+#ifndef nusquids_decay_H
+#define nusquids_decay_H
 
 /*
 Copyright © 2016 Alexander Moss, Marjon Moulai, Carlos Arguelles, and Janet
@@ -639,4 +639,4 @@ public:
 
 }; // close nusquids class definition
 } // close nusquids namespace
-#endif // nusquidslv_h
+#endif // nusquids_decay_h
