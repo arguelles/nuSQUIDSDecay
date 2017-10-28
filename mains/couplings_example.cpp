@@ -10,15 +10,11 @@ tau regeneration, and decay regeneration effects are all being
 simulated. We consider a simplified decay scenario where 
 all mass states except m_4 are stable, the only
 decay channel is from m_4 to m_3, and the only non-zero mixing
-angle between the light mass states and m_4 is theta_24.
-All m_4->m_3 decay processes ({CPP,CVP}x{SCALAR,PSEUDOSCALAR})
-are allowed, but they are computed internally by NuSQuIDSDecay as
-functions of the lagrangian coupling matrix g_ij which we supply to 
-the constructor.
-
-
-FIXME oscillogram script?
-FIXME cite flux source??
+angle between the light mass states and m_4 is theta_24. The phi
+mass is always assumed to be zero. All m_4->m_3 decay processes 
+({CPP,CVP}x{SCALAR,PSEUDOSCALAR}) are allowed, but they are 
+computed internally by NuSQuIDSDecay as functions of the lagrangian 
+coupling matrix g_ij which we supply to the constructor.
 //==========================================================================*/
 
 #include <vector>
@@ -113,7 +109,6 @@ int main(int argc, char** argv){
 	double m2 = sqrt(7.65e-05);
 	double m3 = sqrt(0.0024);
 	double m4 = nu3mass;
-	double mphi = 0.0;
 	std::vector<double> nu_mass{m1,m2,m3,m4};
 
 	enum{SCALAR, PSEUDOSCALAR};
@@ -137,11 +132,11 @@ int main(int argc, char** argv){
 	if(!quiet){std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;}
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_pion = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,true,
-																nu_mass,mphi,couplings,incoherent_int,decay_regen,majorana);
+																nu_mass,couplings,incoherent_int,decay_regen,majorana);
 
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_kaon = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,true,
-																nu_mass,mphi,couplings,incoherent_int,decay_regen,majorana);
+																nu_mass,couplings,incoherent_int,decay_regen,majorana);
 
 	//Include tau regeneration in simulation.
 	nusquids_kaon->Set_TauRegeneration(true);

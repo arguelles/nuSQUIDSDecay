@@ -30,7 +30,7 @@ Marjon Moulai (marjon@mit.edu)
 Carlos Arguelles (caad@mit.edu)
 Janet Conrad (conrad@mit.edu)
 
-FIXME add reference to paper??
+FIXME add reference to paper. (ArXiV number)
 
 */
 
@@ -103,9 +103,6 @@ private:
 	must be non-zero.
 	*/
 	std::vector<double> m_nu;
-
-	//! Mass of scalar daughter particle.
-	double m_phi;
 
 	//! The "Gamma" matrix appearing in the full Hamiltonian.
 	/*!
@@ -205,7 +202,8 @@ private:
 	The contribution from decay regeneration (the "R" terms from eqns. (18) and (19) in [1]) is computed,
 	and then additional incoherent interactions are added internally by nuSQuIDS if iincoherent_int is true.
 	These additional interaction regeneration terms are described in the nuSQUIDS documentation under "InteractionsRho".
-	If majorana is true, there are regeneration contributions from both CVP and CPP. Otherwise, there is only a CPP contribution.
+	If majorana is true, there are regeneration contributions from both CVP and CPP. Otherwise, there is no contribution 
+	because right-handed neutrinos are sterile.
 	Note that the contribution from CVP in the majorana case converts neutrinos to antineutrinos.
 	\param iedaughter is the energy index of the daughter density matrix.
 	\param irho is the neutrino/antineutrino index of the desired matrix.
@@ -214,6 +212,7 @@ private:
 
 	squids::SU_vector InteractionsRho(unsigned int iedaughter, unsigned int irho) const {
 		squids::SU_vector decay_regeneration(numneu);
+	if(majorana){
 		// Get the daughter neutrino energy.
 		double edaughter = E_range[iedaughter];
 		// j-daughter index
@@ -251,7 +250,6 @@ private:
 
 				//Include chirality-violating term if neutrino is majorana.
 				//The procedure is the same, but the parent irho index is inverted.
-				if(majorana){
 					unsigned int parent_irho;
 					if (irho==0) parent_irho=1;
 					if (irho==1) parent_irho=0;
@@ -373,20 +371,26 @@ protected:
 	is the sum over all rate matrices of their ith rows, weighted by m_i,
 	the corresponding neutrino mass. Essentially, this matrix encodes the 
 	total rate of decay of mass state i to all lighter states, including
-	all decay channels ({CPP,CVP}x{SCALAR,PSEUDOSCALAR}). The rate is weighted
-	by the mass m_i for convenience, so that, in GammaRho(), one can simply divide DT
-	by the energy of the parent neutrino, and each rate will acquire the proper factor 
-	of 1/gamma characterizing lab-frame decay retarded by time-dialation.
+	all decay channels ({CPP,CVP}x{SCALAR,PSEUDOSCALAR}) if the neutrino
+	is majorana, and only the channels ({CVP}x{SCALAR,PSEUDOSCALAR}) if 
+	is Dirac. The rate is weighted by the mass m_i for convenience, so that, 
+	in GammaRho(), one can simply divide DT by the energy of the parent 
+	neutrino, and each rate will acquire the proper factor of 1/gamma 
+	characterizing lab-frame decay retarded by time-dialation.
 	*/
 	void Compute_DT(){
 		DT = squids::SU_vector(numneu);
+		//Include chirality preserving processes only in majorana case.
+		int chi_min;
+		if(majorana){ chi_min=0;}
+		else(){ chi_min=1;}
 		//Sum over parent mass states.
 		for(size_t i = 0; i < numneu; i++){
 			double rate=0;
 			//Sum over daughter mass states.
 			for(size_t j=0; j<i; j++){
 				//Sum over all decay channels.
-				for (size_t chi=0; chi<2; chi++){
+				for (size_t chi=chi_min; chi<2; chi++){
 					for (size_t s=0; s<2; s++){			
 						rate+=gsl_matrix_get(rate_matrices[chi][s],i,j);	
 					}
@@ -457,7 +461,7 @@ public:
 
 	//! nuSQUIDSDecay "coupling" constructor.  	
 	/*! 
-	Calls the basic constructor, and then sets neutrino masses, phi mass,
+	Calls the basic constructor, and then sets neutrino masses, 
 	the coupling matrices, as well as switches for incoherent interactions,
 	decay regeneration, and majorana/dirac neutrinos (See SetIncoherentInteractions(),
 	SetDecayRegeneration(), and SetMajorana()). The constructor then calls 
@@ -475,7 +479,6 @@ public:
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
 	\param iinteraction_ FIXME: Carlos: does this just get fed to the parent constructor? 
 	\param m_nu_ is a vector of neutrino masses. See #m_nu .
-	\param m_phi_ is the mass of the 'phi' particle. See #m_phi .
 	\param couplings_ is a length-two array of gsl_matrix* pointers. See #couplings .
 	\param iincoherent_int_ is a switch for incoherent interactions. See SetIncoherentInteractions() .
 	\param decay_regen_ is a switch for decay regeneration. See SetDecayRegeneration()
@@ -483,12 +486,10 @@ public:
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
 					NeutrinoType NT_, bool iinteraction_,
-					std::vector<double> m_nu_, double m_phi_,
-					gsl_matrix* couplings_[2], 
+					std::vector<double> m_nu_, gsl_matrix* couplings_[2], 
 					bool iincoherent_int_, bool decay_regen_, bool majorana_):
 					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
 		m_nu=m_nu_;
-		m_phi=m_phi_;
 		Set_Couplings(couplings_);
 		Compute_Rate_Matrices();
 		Compute_DT();
@@ -500,7 +501,7 @@ public:
 
 	//! nuSQUIDSDecay "partial rate" constructor.  	
 	/*! 
-	Calls the basic constructor, and then sets neutrino masses, phi mass,
+	Calls the basic constructor, and then sets neutrino masses,
 	the four partial rate matrices, as well as switches for incoherent interactions,
 	decay regeneration, and majorana/dirac neutrinos (See SetIncoherentInteractions(),
 	SetDecayRegeneration(), and SetMajorana()). The constructor then allocates memory
@@ -518,7 +519,6 @@ public:
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.	
 	\param iinteraction_ FIXME: Carlos: does this just get fed to the parent constructor? 
 	\param m_nu_ is a vector of neutrino masses. See #m_nu .
-	\param m_phi_ is the mass of the 'phi' particle. See #m_phi .
 	\param rate_matrices_ is a two-by-two array of gsl_matrix* pointers. See #rate_matrices .
 	\param iincoherent_int_ is a switch for incoherent interactions. See SetIncoherentInteractions() .
 	\param decay_regen_ is a switch for decay regeneration. See SetDecayRegeneration()
@@ -526,13 +526,12 @@ public:
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
 					NeutrinoType NT_, bool iinteraction_,
-					std::vector<double> m_nu_, double m_phi_,
+					std::vector<double> m_nu_,
 					gsl_matrix* rate_matrices_[2][2],
 					bool iincoherent_int_, bool decay_regen_, bool majorana_):
 					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
 
 		m_nu=m_nu_;
-		m_phi=m_phi_;
 		Set_Rate_Matrices(rate_matrices_);
 		for (unsigned int s=0; s<2; s++){
 			couplings[s] = gsl_matrix_alloc(numneu,numneu);
@@ -554,7 +553,6 @@ public:
 	iincoherent_int(other.iincoherent_int),
 	majorana(other.majorana), DT(other.DT),
 	DT_evol(other.DT_evol), m_nu(other.m_nu),
-	m_phi(other.m_phi)
 	{
 		for (unsigned int s=0; s<2; s++){			
 			couplings[s] = gsl_matrix_alloc(other.numneu,other.numneu);
@@ -620,13 +618,6 @@ public:
 	\param state is the mass state index. 
 	*/
 	void Set_m_nu(double mass, unsigned int state) { m_nu[state] = mass; }
-
-	//! Set the mass of the 'phi' particle. 
-	/*!
-	See #m_phi
-	\param mass is the mass value.
-	*/
-	void Set_m_phi(double mass) { m_phi = mass; }
 
 	//! Set the Lagrangian couplings between mass states. 
 	/*!
