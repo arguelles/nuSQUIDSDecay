@@ -379,8 +379,8 @@ protected:
 		DT = squids::SU_vector(numneu);
 		//Include chirality preserving processes only in majorana case.
 		int chi_min;
-		if(majorana){ chi_min=0;}
-		else{ chi_min=1;}
+		if(majorana){chi_min=0;}
+		else{chi_min=1;}
 		//Sum over parent mass states.
 		for(size_t i = 0; i < numneu; i++){
 			double rate=0;
@@ -486,14 +486,14 @@ public:
 					std::vector<double> m_nu_, gsl_matrix* couplings_[2] 
 					):
 					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
+
+		iinteractions=iinteraction_;
+		Set_DecayRegeneration(decay_regen_);
+		majorana=majorana_;
 		m_nu=m_nu_;
 		Set_Couplings(couplings_);
 		Compute_Rate_Matrices();
 		Compute_DT();
-		
-		iinteractions=iinteraction_;
-		Set_DecayRegeneration(decay_regen_);
-		majorana=majorana_;
 	}
 
 	//! nuSQUIDSDecay "partial rate" constructor.
@@ -528,16 +528,15 @@ public:
 					):
 					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
 
+		iinteractions=iinteraction_;
+		Set_DecayRegeneration(decay_regen_);
+		majorana=majorana_;
 		m_nu=m_nu_;
 		Set_Rate_Matrices(rate_matrices_);
 		for (unsigned int s=0; s<2; s++){
 			couplings[s] = gsl_matrix_alloc(numneu,numneu);
 		}
 		Compute_DT();
-
-		iinteractions=iinteraction_;
-		Set_DecayRegeneration(decay_regen_);
-		majorana=majorana_;
 	}
 
 	//! nuSQUIDSDecay move constructor.
