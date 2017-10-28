@@ -19,5 +19,5 @@ mains/couplings_example : mains/couplings_example.cpp mains/exCross.o inc/nusqui
 
 .PHONY: clean
 clean:
-	rm -rf ./mains/partial_rate_example ./mains/couplings ./mains/exCross.o
+	rm -rf ./mains/partial_rate_example ./mains/couplings_example ./mains/exCross.o
 
