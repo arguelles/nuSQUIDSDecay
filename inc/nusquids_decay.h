@@ -49,7 +49,7 @@ private:
 	//! A switch for incoherent interactions.
 	/*!
 	This does not control decay regeneration, although it is
-	an incoherent process. Decay regen. is controlled by SetDecayRegeneration(). 
+	an incoherent process. Decay regen. is controlled by SetDecayRegeneration().
 	Default: false.
 	*/
 	bool iincoherent_int=false;
@@ -77,8 +77,8 @@ private:
 	//! The coupling matrices, g_ij.
 	/*!
 	There are two coupling matrices one for each element of
-	{SCALAR,PSEUDOSCALAR}. The row index of each 
-	corresponds to the parent mass state, and the column to 
+	{SCALAR,PSEUDOSCALAR}. The row index of each
+	corresponds to the parent mass state, and the column to
 	the daughter. The matrix will then be strictly lower triangular.
 	*/
 	gsl_matrix* couplings[2];
@@ -86,9 +86,9 @@ private:
 	//! The decay rate matrices, Gamma_ij.
 	/*!
 	There are four rate matrices, one for each element of
-	{CPP,CVP}x{SCALAR,PSEUDOSCALAR}. The row index of each 
-	corresponds to the parent mass state, and the column to 
-	the daughter. The matrix is then strictly lower-triangular.  
+	{CPP,CVP}x{SCALAR,PSEUDOSCALAR}. The row index of each
+	corresponds to the parent mass state, and the column to
+	the daughter. The matrix is then strictly lower-triangular.
 	These decay rates are computed in the *rest frame* of the
 	parent. Eqns. (2) and (3) in [1] are lab-frame, and differ
 	by a factor of 1/gamma.
@@ -97,7 +97,7 @@ private:
 
 	//! Vector of neutrino masses.
 	/*!
-	The lightest mass may be zero, but all other neutrino masses 
+	The lightest mass may be zero, but all other neutrino masses
 	must be non-zero.
 	*/
 	std::vector<double> m_nu;
@@ -220,15 +220,15 @@ private:
 			// states heavier than m_i
 			for (size_t i = j+1; i < numneu; i++) {
 				/*
-				Decay kinematics dictate an integral of the regeneration 
+				Decay kinematics dictate an integral of the regeneration
 				contribution over parent momenta in the range [edaughter,edaughter*x_ij^2]
-				See (18) and (19) in [1]. Here, we approximate the integral with a 
+				See (18) and (19) in [1]. Here, we approximate the integral with a
 				left-rectangular sum over energy bins in this range.
 				*/
 				//parent-to-daughter mass ratio
 				double xij = m_nu[i]/m_nu[j];
 				double ieparent_high = nearest_element(edaughter*xij*xij);
-				// i-energy (parent energy) index 
+				// i-energy (parent energy) index
 				//left-rectangular integral approximation
 				for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
 					//get parent neutrino energy
@@ -253,7 +253,7 @@ private:
 					unsigned int parent_irho;
 					if (irho==0) parent_irho=1;
 					if (irho==1) parent_irho=0;
-					// i-energy (parent energy) index 
+					// i-energy (parent energy) index
 					//left-rectangular integral approximation
 					for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
 						double eparent = E_range[ieparent];
@@ -368,11 +368,11 @@ protected:
 	/*!
 	In the mass basis, DT is a diagonal matrix such that the (i,i) entry
 	is the sum over all rate matrices of their ith rows, weighted by m_i,
-	the corresponding neutrino mass. Essentially, this matrix encodes the 
+	the corresponding neutrino mass. Essentially, this matrix encodes the
 	total rate of decay of mass state i to all lighter states, including
 	all decay channels ({CPP,CVP}x{SCALAR,PSEUDOSCALAR}). The rate is weighted
 	by the mass m_i for convenience, so that, in GammaRho(), one can simply divide DT
-	by the energy of the parent neutrino, and each rate will acquire the proper factor 
+	by the energy of the parent neutrino, and each rate will acquire the proper factor
 	of 1/gamma characterizing lab-frame decay retarded by time-dialation.
 	*/
 	void Compute_DT(){
@@ -410,7 +410,7 @@ protected:
     //! Returns the hamiltonian term corresponding to the "Gamma" matrix with additional terms from nuSQuIDS.
     /*!
     If iincoherent_int switch is set to false, then this returns only the Gamma matrix
-    corresponding to neutrino decay (DT_evol properly weighted). If the switch is set 
+    corresponding to neutrino decay (DT_evol properly weighted). If the switch is set
     to true, this function returns the sum of the decay Gamma matrix and additional neutrino-matter
     interactions described in the nuSQUIDS documentation under "GammaRho".
     \param ie is the energy index of the desired term.
@@ -424,10 +424,9 @@ protected:
 			return DT_evol[ie] * (0.5 / E_range[ie]);
 	}
 
-
 public:
 	//! Basic nuSQUIDSDecay constructor.
-	/*! 
+	/*!
 	Calls nuSQUIDS parent constructor and allocates memory for member
 	matrices and neutrino masses. This constuctor should not be called
 	directly. It is just an encapsulation of basic funcitonality to be
@@ -441,8 +440,6 @@ public:
 					NeutrinoType NT_ = NeutrinoType::both,
 					bool iinteraction_ = true)
 					: nuSQUIDS(e_nodes, numneu_, NT_, iinteraction_){
-		
-
 		// just allocate some matrices
 		DT_evol.resize(ne);
 		for (int ei = 0; ei < ne; ei++) {
@@ -466,7 +463,7 @@ public:
 	nuSQuIDS decay. This both simplifies the interface, and guarantees that only physical
 	decay rate matrices are used in the simulations (an arbitrary selection of rate matrices
 	might not be possible to generate with a Lagrangian of the form (1) in [1]).
- 
+
 	\param e_nodes is the array of neutrino propagation energies.
 	\param numneu_ is the number of neutrino states in the system. Defaults to 3.
 	\param NT_ is the neutrino type from (neutrino/antineutrino/both). Defaults to both.
@@ -543,11 +540,11 @@ public:
 
 	//! nuSQUIDSDecay move constructor.
 	/*!
-	This constructor is of technical utility in wrapping a nuSQuIDSDecay object in 
+	This constructor is of technical utility in wrapping a nuSQuIDSDecay object in
 	a nuSQuIDS atmospheric object. See the example scripts.
 	*/
 	nuSQUIDSDecay(nuSQUIDSDecay&& other):
-	nuSQUIDS(std::move(other)), 
+	nuSQUIDS(std::move(other)),
 	iincoherent_int(other.iincoherent_int),
 	majorana(other.majorana), DT(other.DT),
 	DT_evol(other.DT_evol), m_nu(other.m_nu),
@@ -564,7 +561,7 @@ public:
 	}
 
 	//! nuSQUIDSDecay destructor.
-	/*! 
+	/*!
 	Freeing memory allocated to gsl_matrices.
 	*/
 	~nuSQUIDSDecay(){
@@ -576,26 +573,26 @@ public:
 		}
 	}
 
-	//! Toggles additional neutrino interactions.	 
-	/*! 
+	//! Toggles additional neutrino interactions.
+	/*!
 		The switch, iincoherent_int, toggles additional interactions
 		in both GammaRho() and InteractionsRho(). These interactions are
 		described in the nuSQUIDS documentation under the corresponding
-		function names. If the switch is set to true, these terms are 
-		added to the decay Gamma matrix and decay "R" matrix. If set 
+		function names. If the switch is set to true, these terms are
+		added to the decay Gamma matrix and decay "R" matrix. If set
 		to false, then the only interaction in play is neutrino decay.
 	\param opt is the boolean value to toggle interactions.
 	*/
 	void Set_IncoherentInteractions(bool opt) { iincoherent_int = opt; }
 
-	//! Toggles decay regeneration.		 
+	//! Toggles decay regeneration.
 	/*!
-		The switch is internal to SQUIDS/nuSQUIDS. If set to true, the 
+		The switch is internal to SQUIDS/nuSQUIDS. If set to true, the
 		terms returned by InteractionsRho() are present in the evolution
 		equation. If not, there is no regeneration. Consider the table below.
 		iincoherent_int | DecayRegeneration | Physics
 		--------------- | ----------------- | -------------------------------
-		True						| True							| All terms included. 
+		True						| True							| All terms included.
 		True						| False						 | All except regeneration terms.
 		False					 | True							| Gamma + R (decay with regen only).
 		False					 | False						 | Gamma only (decay only without regen).
@@ -610,22 +607,22 @@ public:
 	*/
 	void Set_Majorana(bool opt) { majorana = opt; }
 
-	//! Set the mass of a particular mass state. 
+	//! Set the mass of a particular mass state.
 	/*!
 	See #m_nu
 	\param mass is the mass value.
-	\param state is the mass state index. 
+	\param state is the mass state index.
 	*/
 	void Set_m_nu(double mass, unsigned int state) { m_nu[state] = mass; }
 
-	//! Set the mass of the 'phi' particle. 
+	//! Set the mass of the 'phi' particle.
 	/*!
 	See #m_phi
 	\param mass is the mass value.
 	*/
 	void Set_m_phi(double mass) { m_phi = mass; }
 
-	//! Set the Lagrangian couplings between mass states. 
+	//! Set the Lagrangian couplings between mass states.
 	/*!
 	First allocate memory for two gsl_matrices to the couplings[] pointer array.
 	Then, check source and target matrix dimensions match, and copy the matrices.
