@@ -210,6 +210,13 @@ private:
 
 	squids::SU_vector InteractionsRho(unsigned int iedaughter, unsigned int irho) const {
 		squids::SU_vector decay_regeneration(numneu);
+	/*
+	If the neutrino is majorana, both CPP and CVP processes contribute to regeneration,
+	and CVP sends neutrinos to antineutrinos. If the neutrino is Dirac, there is no CPP,
+	and the CVP sends left-handed neutrinos to right-handed neutrinos, which are sterile,
+	and therefore do not contribute to regeneration of visible neutrino flux. That is to say,
+	the regeneration terms are automatically zero if the neutrino is Dirac.
+	*/
 	if(majorana){
 		// Get the daughter neutrino energy.
 		double edaughter = E_range[iedaughter];
@@ -246,7 +253,7 @@ private:
 											(evol_b0_proj[irho][j][iedaughter]);
 				}
 
-				//Include chirality-violating term if neutrino is majorana.
+				//Include chirality-violating term. Majorana CVP sends nu to nubar.
 				//The procedure is the same, but the parent irho index is inverted.
 					unsigned int parent_irho;
 					if (irho==0) parent_irho=1;
@@ -293,7 +300,7 @@ protected:
 		return std::distance(diffs.begin(),std::min_element(diffs.begin(), diffs.end()));
 	}
 
-	//! Prints the contents of a squids::SU_vector. (Utility)
+	//! Prints the contents of a squids::SU_vector. (Useful for debugging)
 	/*!
 	\param mat is the SU_vector.
 	\param dim is its dimension (assume square).
@@ -311,7 +318,7 @@ protected:
 		std::cout << std::endl;
 	}
 
-	//! Prints the contents of a gsl_matrix. (Utility)
+	//! Prints the contents of a gsl_matrix. (Useful for debugging)
 	/*!
 	\param mat is the gsl_matrix.
 	\param dim is its dimension (assume square).
