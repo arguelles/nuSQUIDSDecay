@@ -221,6 +221,8 @@ private:
 				// i-energy (parent energy) index
 				//left-rectangular integral approximation
 				
+
+
 				for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
 					//get parent neutrino energy
 					double eparent = E_range[ieparent];
@@ -277,10 +279,12 @@ private:
 				}
 			}
 		//Toggling additional regeneration terms (from nuSQuIDS).
-		if (iinteractions)
+		if (iinteractions){
 			return nuSQUIDS::InteractionsRho(iedaughter, irho) + decay_regeneration;
-		else
+		}
+		else{
 			return decay_regeneration;
+		}
 	}
 
 protected:

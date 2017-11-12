@@ -1,4 +1,4 @@
-/*========================="Partial Rate" Example==========================//
+/*========================="Couplings" Example==========================//
 Below is an example implementation of the NuSQuIDSDecay class.
 An example neutrino flux (kaon/pion) is read in over a specified
 range and binning in cos(zenith angle) and energy. NuSQuIDSDecay
@@ -12,19 +12,12 @@ all mass states except m_4 are stable, the only
 decay channel is from m_4 to m_3, and the only non-zero mixing
 angle between the light mass states and m_4 is theta_24. The phi
 mass is always assumed to be zero. All m_4->m_3 decay processes 
-({CPP,CVP}) are allowed, and their 
-"partial lifetimes" (the inverse partial rates for each process) 
-can be freely and independently specified. The decays here are
-through the scalar channel, though the user is free to specify
-pseudoscalar interactions as an alternative.
-	Note: because these rates are physically functions of the coupling
-matrix not all rate combinations will be physical. The purpose of 
-this example is to allow the user to tune these various parameters
-(including the lifetimes) and observe the effects on the flux.
-A slightly modified version, given in the "Coupling" example, 
-allows one to perform the same evolution, but by specifying the 
-Lagrangian couplings instead of partial rates, ensuring physical
-rate combinations.
+({CPP,CVP}) are allowed, but they are 
+computed internally by NuSQuIDSDecay as functions of the lagrangian 
+coupling matrix g_ij which we supply to the constructor. The couplings
+here are set to be scalar, though the user is free to specify pseudoscalar
+couplings as an alternative. The coupling constructor assumes majorana neutrinos
+automatically, so we do not need to set the majorana flag. 
 //==========================================================================*/
 
 #include <vector>
@@ -47,8 +40,6 @@ void WriteFlux(std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids, std::string
 		for(double enu : nusquids->GetERange()){
 			ioutput << costh << " ";
 			ioutput << enu << " ";
-			ioutput << nusquids->EvalFlavor(NU_MU,costh,enu,NEUTRINO) << " ";
-			ioutput << nusquids->EvalFlavor(NU_MU,costh,enu,ANTINEUTRINO) << " ";
 			ioutput << nusquids->EvalFlavor(NU_MU,costh,enu,NEUTRINO) << " ";
 			ioutput << nusquids->EvalFlavor(NU_MU,costh,enu,ANTINEUTRINO) << " ";
 			ioutput << std::endl;
@@ -91,20 +82,16 @@ int main(int argc, char** argv){
 	bool oscillogram = true;
 	bool quiet = false;
 	// getting input parameters
-	double nu4mass, theta24, lifetime;
+	double nu4mass, theta24;
 	nu4mass = 1.0; //Set the mass of the sterile neutrino (eV)
 	theta24 = 1.0; //Set the mixing angle between sterile and tau flavors.
 
-	//Set "partial lifetimes". That is,
-	//inverse partial rates.
-	//Assuming nu4->nu3 decay only! (for simplicity)
-	double cpp_lifetime = 1.0e2;
-	double cvp_lifetime = 1.0e2;
+	//Set coupling (we are assuming m4->m3 decay only for simplicity).
+	double coupling=1.0;
 
-	//Toggle majorana/dirac, incoherent interactions, scalar/pseudoscalar and decay regeneration.
+	//Toggle, incoherent interactions scalar/pseudoscalar, and decay regeneration.
 	bool iinteraction=true;
 	bool decay_regen=true;
-	bool majorana=true;
 	bool pscalar=false;
 
 	//Path for input fluxes
@@ -114,8 +101,8 @@ int main(int argc, char** argv){
 	const std::string modelname = "PolyGonato_QGSJET-II-04";
 
 	// oscillation physics parameters and nusquids setup
-	// Note; only m_1 may be massless! Our computations do not
-	// apply if more than one neutrino mass is zero.
+	// Note: only m_1 may be set to zero. Our computations
+	// do not apply if more than one neutrino mass is zero!
 	double dm41sq = nu4mass*nu4mass; // assume m_1 is massless
 	const unsigned int numneu = 4;
 	const squids::Const units;
@@ -125,34 +112,26 @@ int main(int argc, char** argv){
 	double m4 = nu4mass;
 	std::vector<double> nu_mass{m1,m2,m3,m4};
 
-	//Chirality Preserving Process or Chirality Violating Process
-	enum{CPP,CVP};
-	
 	//Allocate memory for rate matrices 
-	gsl_matrix* rate_matrices[2];
-	for (size_t chi=0; chi<2; chi++){
-		rate_matrices[chi] = gsl_matrix_alloc(numneu,numneu);
-		gsl_matrix_set_zero(rate_matrices[chi]);
-	}
+	gsl_matrix* couplings;
+	couplings = gsl_matrix_alloc(numneu,numneu);
+	gsl_matrix_set_zero(couplings);
 
-	//Set chirality-preserving process rate.
-	gsl_matrix_set(rate_matrices[CPP],3,2,1.0/cpp_lifetime); //Gamma_43
-	//Set chirality-violating process rate.
-	gsl_matrix_set(rate_matrices[CVP],3,2,1.0/cvp_lifetime); //Gamma_43
+	//Set coupling (43 nonzero).
+	gsl_matrix_set(couplings,3,2,coupling); //g_43
 
 	//Declare NuSQuIDSDecay objects. They are declared within a NuSQuIDSAtm wrapper to incorporate atmospheric simulation.
 	//Here, we use the partial rate constructor of NuSQuIDSDecay. One object is created for the kaon flux component, and
 	//one for the pion flux component.
 	//The first two arguments (linspaces) define ranges of cos(zenith) and energy over which to simulate, respectively.
-	if(!quiet)
-		std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;
+	if(!quiet){std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;}
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_pion = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,
-																pscalar,decay_regen,majorana,nu_mass,rate_matrices);
+																decay_regen,pscalar,nu_mass,couplings);
 
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_kaon = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
-																logspace(1.e2*units.GeV,1.e6*units.GeV,150), numneu,both,iinteraction,
-																pscalar,decay_regen,majorana,nu_mass,rate_matrices);
+																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,
+																decay_regen,pscalar,nu_mass,couplings);
 
 	//Include tau regeneration in simulation.
 	nusquids_kaon->Set_TauRegeneration(true);
@@ -224,9 +203,7 @@ int main(int argc, char** argv){
 	//Write final flux to text file.
 	if(oscillogram){WriteFlux(nusquids_pion, std::string("pion_final"));}
 
-	//Free memory for rate matrices 
-	for (size_t chi=0; chi<2; chi++){
-		gsl_matrix_free(rate_matrices[chi]);
-	}
+	//Free memory for couplings 
+	gsl_matrix_free(couplings);
 	return 0;
 }
