@@ -12,9 +12,11 @@ all mass states except m_4 are stable, the only
 decay channel is from m_4 to m_3, and the only non-zero mixing
 angle between the light mass states and m_4 is theta_24. The phi
 mass is always assumed to be zero. All m_4->m_3 decay processes 
-({CPP,CVP}x{SCALAR,PSEUDOSCALAR}) are allowed, and their 
+({CPP,CVP}) are allowed, and their 
 "partial lifetimes" (the inverse partial rates for each process) 
-can be freely and independently specified.
+can be freely and independently specified. The decays here are
+through the scalar channel, though the user is free to specify
+pseudoscalar interactions as an alternative.
 	Note: because these rates are physically functions of the coupling
 matrix not all rate combinations will be physical. The purpose of 
 this example is to allow the user to tune these various parameters
@@ -89,21 +91,21 @@ int main(int argc, char** argv){
 	bool oscillogram = true;
 	bool quiet = false;
 	// getting input parameters
-	double nu3mass, theta24, lifetime;
-	nu3mass = 1.0; //Set the mass of the sterile neutrino (eV)
+	double nu4mass, theta24, lifetime;
+	nu4mass = 1.0; //Set the mass of the sterile neutrino (eV)
 	theta24 = 1.0; //Set the mixing angle between sterile and tau flavors.
 
 	//Set "partial lifetimes". That is,
 	//inverse partial rates.
-	double cpp_scalar_lifetime = 1.0e2;
-	double cvp_scalar_lifetime = 1.0e2;
-	double cpp_pseudoscalar_lifetime = 1.0e2;
-	double cvp_pseudoscalar_lifetime = 1.0e2;
+	//Assuming nu4->nu3 decay only! (for simplicity)
+	double cpp_lifetime = 1.0e2;
+	double cvp_lifetime = 1.0e2;
 
-	//Toggle majorana/dirac, incoherent interactions, and decay regeneration.
+	//Toggle majorana/dirac, incoherent interactions, scalar/pseudoscalar and decay regeneration.
 	bool iinteraction=true;
 	bool decay_regen=true;
 	bool majorana=true;
+	bool pscalar=false;
 
 	//Path for input fluxes
 	std::string input_flux_path = "../fluxes";
@@ -112,36 +114,31 @@ int main(int argc, char** argv){
 	const std::string modelname = "PolyGonato_QGSJET-II-04";
 
 	// oscillation physics parameters and nusquids setup
-	double dm41sq = nu3mass*nu3mass; // assume m_0 is massless
+	// Note; only m_1 may be massless! Our computations do not
+	// apply if more than one neutrino mass is zero.
+	double dm41sq = nu4mass*nu4mass; // assume m_1 is massless
 	const unsigned int numneu = 4;
 	const squids::Const units;
 	double m1 = 0.0;
 	double m2 = sqrt(7.65e-05);
 	double m3 = sqrt(0.0024);
-	double m4 = nu3mass;
+	double m4 = nu4mass;
 	std::vector<double> nu_mass{m1,m2,m3,m4};
 
-		enum{SCALAR, PSEUDOSCALAR};
-		//Chirality Preserving Process or Chirality Violating Process
-		enum{CPP,CVP};
+	//Chirality Preserving Process or Chirality Violating Process
+	enum{CPP,CVP};
 	
 	//Allocate memory for rate matrices 
-	gsl_matrix* rate_matrices[2][2];
+	gsl_matrix* rate_matrices[2];
 	for (size_t chi=0; chi<2; chi++){
-		for (size_t s=0; s<2; s++){				 
-			rate_matrices[chi][s] = gsl_matrix_alloc(numneu,numneu);
-			gsl_matrix_set_zero(rate_matrices[chi][s]);
-		}
+		rate_matrices[chi] = gsl_matrix_alloc(numneu,numneu);
+		gsl_matrix_set_zero(rate_matrices[chi]);
 	}
 
-	//Set chirality-preserving scalar process rate.
-	gsl_matrix_set(rate_matrices[CPP][SCALAR],3,2,1.0/cpp_scalar_lifetime); //Gamma_43
-	//Set chirality-violating scalar process rate.
-	gsl_matrix_set(rate_matrices[CVP][SCALAR],3,2,1.0/cvp_scalar_lifetime); //Gamma_43
-	//Set chirality-preserving pseudoscalar process rate.
-	gsl_matrix_set(rate_matrices[CPP][PSEUDOSCALAR],3,2,1.0/cpp_pseudoscalar_lifetime); //Gamma_43
-	//Set chirality-violating pseudoscalar process rate.
-	gsl_matrix_set(rate_matrices[CVP][PSEUDOSCALAR],3,2,1.0/cvp_pseudoscalar_lifetime); //Gamma_43
+	//Set chirality-preserving process rate.
+	gsl_matrix_set(rate_matrices[CPP],3,2,1.0/cpp_lifetime); //Gamma_43
+	//Set chirality-violating process rate.
+	gsl_matrix_set(rate_matrices[CVP],3,2,1.0/cvp_lifetime); //Gamma_43
 
 	//Declare NuSQuIDSDecay objects. They are declared within a NuSQuIDSAtm wrapper to incorporate atmospheric simulation.
 	//Here, we use the partial rate constructor of NuSQuIDSDecay. One object is created for the kaon flux component, and
@@ -151,11 +148,11 @@ int main(int argc, char** argv){
 		std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_pion = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,
-																decay_regen,majorana,nu_mass,rate_matrices);
+																pscalar,decay_regen,majorana,nu_mass,rate_matrices);
 
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_kaon = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150), numneu,both,iinteraction,
-																decay_regen,majorana,nu_mass,rate_matrices);
+																pscalar,decay_regen,majorana,nu_mass,rate_matrices);
 
 	//Include tau regeneration in simulation.
 	nusquids_kaon->Set_TauRegeneration(true);
@@ -229,9 +226,7 @@ int main(int argc, char** argv){
 
 	//Free memory for rate matrices 
 	for (size_t chi=0; chi<2; chi++){
-		for (size_t s=0; s<2; s++){				 
-			gsl_matrix_free(rate_matrices[chi][s]);
-		}
+		gsl_matrix_free(rate_matrices[chi]);
 	}
 	return 0;
 }

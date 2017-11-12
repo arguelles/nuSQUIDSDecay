@@ -12,9 +12,12 @@ all mass states except m_4 are stable, the only
 decay channel is from m_4 to m_3, and the only non-zero mixing
 angle between the light mass states and m_4 is theta_24. The phi
 mass is always assumed to be zero. All m_4->m_3 decay processes 
-({CPP,CVP}x{SCALAR,PSEUDOSCALAR}) are allowed, but they are 
+({CPP,CVP}) are allowed, but they are 
 computed internally by NuSQuIDSDecay as functions of the lagrangian 
-coupling matrix g_ij which we supply to the constructor.
+coupling matrix g_ij which we supply to the constructor. The couplings
+here are set to be scalar, though the user is free to specify pseudoscalar
+couplings as an alternative. The coupling constructor assumes majorana neutrinos
+automatically, so we do not need to set the majorana flag. 
 //==========================================================================*/
 
 #include <vector>
@@ -81,18 +84,17 @@ int main(int argc, char** argv){
 	bool oscillogram = true;
 	bool quiet = false;
 	// getting input parameters
-	double nu3mass, theta24;
-	nu3mass = 1.0; //Set the mass of the sterile neutrino (eV)
+	double nu4mass, theta24;
+	nu4mass = 1.0; //Set the mass of the sterile neutrino (eV)
 	theta24 = 1.0; //Set the mixing angle between sterile and tau flavors.
 
-	//Set scalar and pseudoscalar couplings.
-	double scalar_coupling=1.0;
-	double pseudoscalar_coupling=2.0;
+	//Set coupling (we are assuming m4->m3 decay only for simplicity).
+	double coupling=1.0;
 
-	//Toggle majorana/dirac, incoherent interactions, and decay regeneration.
+	//Toggle, incoherent interactions scalar/pseudoscalar, and decay regeneration.
 	bool iinteraction=true;
 	bool decay_regen=true;
-	bool majorana=true;
+	bool pscalar=false;
 
 	//Path for input fluxes
 	std::string input_flux_path = "../fluxes";
@@ -101,28 +103,24 @@ int main(int argc, char** argv){
 	const std::string modelname = "PolyGonato_QGSJET-II-04";
 
 	// oscillation physics parameters and nusquids setup
-	double dm41sq = nu3mass*nu3mass; // assume m_0 is massless
+	// Note: only m_1 may be set to zero. Our computations
+	// do not apply if more than one neutrino mass is zero!
+	double dm41sq = nu4mass*nu4mass; // assume m_1 is massless
 	const unsigned int numneu = 4;
 	const squids::Const units;
 	double m1 = 0.0;
 	double m2 = sqrt(7.65e-05);
 	double m3 = sqrt(0.0024);
-	double m4 = nu3mass;
+	double m4 = nu4mass;
 	std::vector<double> nu_mass{m1,m2,m3,m4};
 
-	enum{SCALAR, PSEUDOSCALAR};
-	
 	//Allocate memory for rate matrices 
-	gsl_matrix* couplings[2];
-	for (size_t s=0; s<2; s++){				 
-		couplings[s] = gsl_matrix_alloc(numneu,numneu);
-		gsl_matrix_set_zero(couplings[s]);
-	}
+	gsl_matrix* couplings;
+	couplings = gsl_matrix_alloc(numneu,numneu);
+	gsl_matrix_set_zero(couplings);
 
-	//Set chirality-preserving scalar coupling (43 nonzero).
-	gsl_matrix_set(couplings[SCALAR],3,2,scalar_coupling); //g_43
-	//Set chirality-preserving pseudoscalar coupling (43 nonzero).
-	gsl_matrix_set(couplings[PSEUDOSCALAR],3,2,pseudoscalar_coupling); //g_43
+	//Set coupling (43 nonzero).
+	gsl_matrix_set(couplings,3,2,coupling); //g_43
 
 	//Declare NuSQuIDSDecay objects. They are declared within a NuSQuIDSAtm wrapper to incorporate atmospheric simulation.
 	//Here, we use the partial rate constructor of NuSQuIDSDecay. One object is created for the kaon flux component, and
@@ -131,11 +129,11 @@ int main(int argc, char** argv){
 	if(!quiet){std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;}
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_pion = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,
-																decay_regen,majorana,nu_mass,couplings);
+																decay_regen,pscalar,nu_mass,couplings);
 
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_kaon = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,
-																decay_regen,majorana,nu_mass,couplings);
+																decay_regen,pscalar,nu_mass,couplings);
 
 	//Include tau regeneration in simulation.
 	nusquids_kaon->Set_TauRegeneration(true);
@@ -208,8 +206,6 @@ int main(int argc, char** argv){
 	if(oscillogram){WriteFlux(nusquids_pion, std::string("pion_final"));}
 
 	//Free memory for couplings 
-	for (size_t s=0; s<2; s++){				 
-		gsl_matrix_free(couplings[s]);
-	}
+	gsl_matrix_free(couplings);
 	return 0;
 }
