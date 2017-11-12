@@ -274,13 +274,6 @@ private:
 												(evol_b0_proj[irho][j][iedaughter]);
 						}
 					}
-
-				std::cout << "i: " << i << "  j: " << j << std::endl;
-				std::cout << "Hieparent: " << ieparent_high << std::endl;
-				std::cout << "searchval: " << edaughter/(yij*yij) << std::endl;
-				std::cout << "yij: " << yij << std::endl;
-				printmat(decay_regeneration,4,"R");
-
 				}
 			}
 		//Toggling additional regeneration terms (from nuSQuIDS).
