@@ -16,15 +16,19 @@ mass is always assumed to be zero. All m_4->m_3 decay processes
 "partial lifetimes" (the inverse partial rates for each process) 
 can be freely and independently specified. The decays here are
 through the scalar channel, though the user is free to specify
-pseudoscalar interactions as an alternative.
+pseudoscalar interactions as an alternative (recall that this
+simulation implements either pure scalar or pure pseudoscalar 
+couplings, not mixtures thereof).
 	Note: because these rates are physically functions of the coupling
-matrix not all rate combinations will be physical. The purpose of 
+matrix, not all possible rate combinations will be physical. The purpose of 
 this example is to allow the user to tune these various parameters
 (including the lifetimes) and observe the effects on the flux.
 A slightly modified version, given in the "Coupling" example, 
 allows one to perform the same evolution, but by specifying the 
 Lagrangian couplings instead of partial rates, ensuring physical
-rate combinations.
+rate combinations. If the user wishes to implement a Dirac neutrino,
+they can use this example, specifying the partial decay rates manually
+and toggling the "majorana" flag to false.
 //==========================================================================*/
 
 #include <vector>
@@ -91,13 +95,14 @@ int main(int argc, char** argv){
 	// getting input parameters
 	double nu4mass, theta24, lifetime;
 	nu4mass = 1.0; //Set the mass of the sterile neutrino (eV)
-	theta24 = 1.0; //Set the mixing angle between sterile and tau flavors.
+	theta24 = 1.0; //Set the mixing angle between sterile and tau flavors [rad].
 
 	//Set "partial lifetimes". That is,
 	//inverse partial rates.
 	//Assuming nu4->nu3 decay only! (for simplicity)
-	double cpp_lifetime = 1.0e2;
-	double cvp_lifetime = 1.0e2;
+	//Partial lifetimes in [eV^-1]
+	double cpp_lifetime = 1.0e1;
+	double cvp_lifetime = 1.0e1;
 
 	//Toggle majorana/dirac, incoherent interactions, scalar/pseudoscalar and decay regeneration.
 	bool iinteraction=true;
@@ -142,15 +147,16 @@ int main(int argc, char** argv){
 	//Here, we use the partial rate constructor of NuSQuIDSDecay. One object is created for the kaon flux component, and
 	//one for the pion flux component.
 	//The first two arguments (linspaces) define ranges of cos(zenith) and energy over which to simulate, respectively.
+	//The cos(zenith) argument is passed to the wrapping class. The arguments to nuSQUIDSDecay begin at the energy argument.
 	if(!quiet)
 		std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_pion = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,
-																pscalar,decay_regen,majorana,nu_mass,rate_matrices);
+																decay_regen,pscalar,majorana,nu_mass,rate_matrices);
 
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_kaon = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150), numneu,both,iinteraction,
-																pscalar,decay_regen,majorana,nu_mass,rate_matrices);
+																decay_regen,pscalar,majorana,nu_mass,rate_matrices);
 
 	//Include tau regeneration in simulation.
 	nusquids_kaon->Set_TauRegeneration(true);

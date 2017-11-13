@@ -16,7 +16,9 @@ mass is always assumed to be zero. All m_4->m_3 decay processes
 computed internally by NuSQuIDSDecay as functions of the lagrangian 
 coupling matrix g_ij which we supply to the constructor. The couplings
 here are set to be scalar, though the user is free to specify pseudoscalar
-couplings as an alternative. The coupling constructor assumes majorana neutrinos
+couplings as an alternative (recall that this simulation applies to 
+pure scalar or pure pseudoscalar couplings, and not to mixtures). 
+The coupling constructor assumes majorana neutrinos
 automatically, so we do not need to set the majorana flag. 
 //==========================================================================*/
 
@@ -84,7 +86,7 @@ int main(int argc, char** argv){
 	// getting input parameters
 	double nu4mass, theta24;
 	nu4mass = 1.0; //Set the mass of the sterile neutrino (eV)
-	theta24 = 1.0; //Set the mixing angle between sterile and tau flavors.
+	theta24 = 1.0; //Set the mixing angle [rad] between sterile and tau flavors.
 
 	//Set coupling (we are assuming m4->m3 decay only for simplicity).
 	double coupling=1.0;
@@ -124,6 +126,7 @@ int main(int argc, char** argv){
 	//Here, we use the partial rate constructor of NuSQuIDSDecay. One object is created for the kaon flux component, and
 	//one for the pion flux component.
 	//The first two arguments (linspaces) define ranges of cos(zenith) and energy over which to simulate, respectively.
+	//The cos(zenith) argument is passed to the wrapping class. The arguments to nuSQUIDSDecay begin at the energy argument.
 	if(!quiet){std::cout << "Declaring nuSQuIDSDecay atmospheric objects" << std::endl;}
 	std::shared_ptr<nuSQUIDSAtm<nuSQUIDSDecay>> nusquids_pion = std::make_shared<nuSQUIDSAtm<nuSQUIDSDecay>>(linspace(-1.,0.2,40),
 																logspace(1.e2*units.GeV,1.e6*units.GeV,150),numneu,both,iinteraction,

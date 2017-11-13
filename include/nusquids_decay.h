@@ -561,7 +561,7 @@ public:
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
 					NeutrinoType NT_, bool iinteraction_,
-					bool pscalar_, bool decay_regen_, 
+					bool decay_regen_, bool pscalar_, 
 					bool majorana_, std::vector<double> m_nu_,
 					gsl_matrix* rate_matrices_[2]
 					):
