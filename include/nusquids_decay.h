@@ -211,45 +211,46 @@ private:
 				contribution over parent momenta in the range [edaughter,edaughter*x_ij^2]
 				See (18) and (19) in [1]. Here, we approximate the integral with a
 				left-rectangular sum over energy bins in this range.
-				We have changed from x_ij to y_ij=1/x_ij to clean up behavior in the m_j=0 case.
-				This is just a change of variables, it doesn't alter the simulation in the m_j!=0
-				case.
+				We change from x_ij to y_ij=1/x_ij to clean up behavior in the m_j-> case.
+				This is just an algebraic manipulation to keep everything stable.
 				*/
+
 				//parent-to-daughter mass ratio
-				double yij = m_nu[j]/m_nu[i];
-				double ieparent_high = nearest_element(edaughter/(yij*yij));
-				// i-energy (parent energy) index
-				//left-rectangular integral approximation
-				
-
-
-				for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
-					//get parent neutrino energy
-					double eparent = E_range[ieparent];
-					//boost factor to lab frame
-					double gamma = eparent/m_nu[i];
-					double delta_eparent = E_range[ieparent+1]-E_range[ieparent];
-					if (!pscalar){
-						decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
-											*evol_b0_proj[irho][i][ieparent])*
-											(1/(eparent*eparent*edaughter))*
-											((gsl_matrix_get(rate_matrices[CPP],i,j)/gamma)*
-											pow(eparent*yij+edaughter,2)/pow(yij+1,2))*
-											(evol_b0_proj[irho][j][iedaughter]);
+				double xij = m_nu[i]/m_nu[j];
+				double ieparent_high = nearest_element(edaughter*(xij*xij));
+				//Check that m_nu[j] is not too close to zero.
+				//if it isn't, we can use the formulae directly from the paper.	
+				if (fabs(m_nu[j]-0.0)>1e-6){
+					// i-energy (parent energy) index
+					//left-rectangular integral approximation
+					for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
+						//get parent neutrino energy
+						double eparent = E_range[ieparent];
+						//boost factor to lab frame
+						double gamma = eparent/m_nu[i];
+						double delta_eparent = E_range[ieparent+1]-E_range[ieparent];
+						if (!pscalar){
+							decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
+												*evol_b0_proj[irho][i][ieparent])*
+												(xij*xij/(xij*xij-1))*
+												(1/(eparent*eparent*edaughter))*
+												((gsl_matrix_get(rate_matrices[CPP],i,j)/gamma)*
+												pow(eparent+xij*edaughter,2)/pow(xij+1,2))*
+												(evol_b0_proj[irho][j][iedaughter]);
+						}
+						if (pscalar){
+							decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
+												*evol_b0_proj[irho][i][ieparent])*
+												(xij*xij/(xij*xij-1))*
+												(1/(eparent*eparent*edaughter))*
+												((gsl_matrix_get(rate_matrices[CPP],i,j)/gamma)*
+												pow(eparent-xij*edaughter,2)/pow(xij-1,2))*
+												(evol_b0_proj[irho][j][iedaughter]);
+						}
 					}
-					if (pscalar){
-						decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
-											*evol_b0_proj[irho][i][ieparent])*
-											(1/(eparent*eparent*edaughter))*
-											((gsl_matrix_get(rate_matrices[CPP],i,j)/gamma)*
-											pow(eparent*yij-edaughter,2)/pow(1-yij,2))*
-											(evol_b0_proj[irho][j][iedaughter]);
-					}
-				}
-
-
-				//Include chirality-violating term. Majorana CVP sends nu to nubar.
-				//The procedure is the same, but the parent irho index is inverted.
+	
+					//Include chirality-violating term. Majorana CVP sends nu to nubar.
+					//The procedure is the same, but the parent irho index is inverted.
 					unsigned int parent_irho;
 					if (irho==0) parent_irho=1;
 					if (irho==1) parent_irho=0;
@@ -262,6 +263,71 @@ private:
 						if (!pscalar){
 							decay_regeneration += (delta_eparent)*(state[ieparent].rho[parent_irho]
 												*evol_b0_proj[parent_irho][i][ieparent])*
+												(xij*xij/(xij*xij-1))*
+												((eparent-edaughter)/(eparent*eparent*edaughter))*
+												((gsl_matrix_get(rate_matrices[CVP],i,j)/gamma)*
+												(edaughter*pow(xij,2)-eparent)/pow(xij+1,2))*
+												(evol_b0_proj[irho][j][iedaughter]);
+						}
+						if (pscalar){
+							decay_regeneration += (delta_eparent)*(state[ieparent].rho[parent_irho]
+												*evol_b0_proj[parent_irho][i][ieparent])*
+												(xij*xij/(xij*xij-1))*
+												((eparent-edaughter)/(eparent*eparent*edaughter))*
+												((gsl_matrix_get(rate_matrices[CVP],i,j)/gamma)*
+												(edaughter*pow(xij,2)-eparent)/pow(xij-1,2))*
+												(evol_b0_proj[irho][j][iedaughter]);
+						}
+					}
+				}
+				
+				//If m_nu[j] is too close to zero, xij diverges, and we switch to an alternative
+				//form for the differential decay rates, in terms of yij=1/xij.
+				else{
+					double yij = m_nu[j]/m_nu[i];
+	
+					for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
+						//get parent neutrino energy
+						double eparent = E_range[ieparent];
+						//boost factor to lab frame
+						double gamma = eparent/m_nu[i];
+						double delta_eparent = E_range[ieparent+1]-E_range[ieparent];
+						if (!pscalar){
+							decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
+												*evol_b0_proj[irho][i][ieparent])*
+												(1/(1-yij*yij))*
+												(1/(eparent*eparent*edaughter))*
+												((gsl_matrix_get(rate_matrices[CPP],i,j)/gamma)*
+												pow(eparent*yij+edaughter,2)/pow(yij+1,2))*
+												(evol_b0_proj[irho][j][iedaughter]);
+						}
+						if (pscalar){
+							decay_regeneration += (delta_eparent)*(state[ieparent].rho[irho]
+												*evol_b0_proj[irho][i][ieparent])*
+												(1/(1-yij*yij))*
+												(1/(eparent*eparent*edaughter))*
+												((gsl_matrix_get(rate_matrices[CPP],i,j)/gamma)*
+												pow(eparent*yij-edaughter,2)/pow(1-yij,2))*
+												(evol_b0_proj[irho][j][iedaughter]);
+						}
+					}
+	
+	
+					//Include chirality-violating term. Majorana CVP sends nu to nubar.
+					//The procedure is the same, but the parent irho index is inverted.
+					unsigned int parent_irho;
+					if (irho==0) parent_irho=1;
+					if (irho==1) parent_irho=0;
+					// i-energy (parent energy) index
+					//left-rectangular integral approximation
+					for (size_t ieparent = iedaughter; ieparent < ieparent_high-1; ieparent++) {
+						double eparent = E_range[ieparent];
+						double gamma = eparent/m_nu[i];
+						double delta_eparent = E_range[ieparent+1]-E_range[ieparent];
+						if (!pscalar){
+							decay_regeneration += (delta_eparent)*(state[ieparent].rho[parent_irho]
+												*evol_b0_proj[parent_irho][i][ieparent])*
+												(1/(1-yij*yij))*
 												((eparent-edaughter)/(eparent*eparent*edaughter))*
 												((gsl_matrix_get(rate_matrices[CVP],i,j)/gamma)*
 												(edaughter-pow(yij,2)*eparent)/pow(yij+1,2))*
@@ -270,14 +336,18 @@ private:
 						if (pscalar){
 							decay_regeneration += (delta_eparent)*(state[ieparent].rho[parent_irho]
 												*evol_b0_proj[parent_irho][i][ieparent])*
+												(1/(1-yij*yij))*
 												((eparent-edaughter)/(eparent*eparent*edaughter))*
 												((gsl_matrix_get(rate_matrices[CVP],i,j)/gamma)*
 												(edaughter-pow(yij,2)*eparent)/pow(1-yij,2))*
 												(evol_b0_proj[irho][j][iedaughter]);
 						}
-					}
-				}
-			}
+					} 
+
+				} //Close second m_nu[j] conditional.
+			} //Close i loop
+		} //Close j loop 
+
 		//Toggling additional regeneration terms (from nuSQuIDS).
 		if (iinteractions){
 			return nuSQUIDS::InteractionsRho(iedaughter, irho) + decay_regeneration;
