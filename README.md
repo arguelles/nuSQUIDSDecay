@@ -49,7 +49,7 @@ in the example source files appropriately.
 
 For more information please email:
 
-Alexander Moss (zander@mit.edu)
+Alexander (Zander) Moss (zander@caltech.edu)
 Marjon Moulai (marjon@mit.edu)
 Carlos Arguelles (caad@mit.edu)
 Janet Conrad (conrad@mit.edu)
