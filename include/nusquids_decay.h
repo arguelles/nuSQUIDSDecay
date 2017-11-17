@@ -2,16 +2,15 @@
 #define nusquids_decay_H
 
 /*
-Header implementing NuSQUIDSDecay class. See documentation for details.
+Header implementing NuSQUIDSDecay class. See documentation for technical details.
+See arXiv:1711.05921 (referred to here as [1]) for details about the decay model.
+
 For more information please email:
 
 Alexander Moss (zander@mit.edu)
 Marjon Moulai (marjon@mit.edu)
 Carlos Arguelles (caad@mit.edu)
 Janet Conrad (conrad@mit.edu)
-
-FIXME add reference to paper. (ArXiV number)
-
 */
 
 //Get mathematical constants.
