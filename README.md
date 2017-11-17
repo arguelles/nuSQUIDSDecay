@@ -1,7 +1,7 @@
 # nuSQUIDSDecay
 
 A specialization of the nuSQUIDS class that includes neutrino decay.
-For physics details, see Appendix A of FIXME: ArXiV number here!
+For physics details, see Appendix A of arXiv:1711.05921
 
 The class is defined completely in its header file, include/nusquids_decay.h
 The examples reside in the examples/ directory.
