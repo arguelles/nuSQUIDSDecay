@@ -44,7 +44,7 @@ private:
 	/*!
 	See Set_DecayRegeneration() for details.
 	*/
-	bool iinteractions=false;
+	bool ihard_interactions=false;
 
 	//Chirality Preserving Process or Chirality Violating Process
 	enum{CPP,CVP};
@@ -348,7 +348,7 @@ private:
 		} //Close j loop 
 
 		//Toggling additional regeneration terms (from nuSQuIDS).
-		if (iinteractions){
+		if (ihard_interactions){
 			return nuSQUIDS::InteractionsRho(iedaughter, irho) + decay_regeneration;
 		}
 		else{
@@ -518,7 +518,7 @@ protected:
     \return the modified "Gamma" matrix.
     */
 	squids::SU_vector GammaRho(unsigned int ie, unsigned int irho) const {
-		if (iinteractions)
+		if (ihard_interactions)
 			return nuSQUIDS::GammaRho(ie, irho) + DT_evol[ie] * (0.5 / E_range[ie]);
 		else
 			return DT_evol[ie] * (0.5 / E_range[ie]);
@@ -539,10 +539,12 @@ public:
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
 					NeutrinoType NT_ = NeutrinoType::both,
-					bool iinteraction_ = true)
-					: nuSQUIDS(e_nodes, numneu_, NT_, iinteraction_){
-		
-
+					bool ihard_interactions = true)
+					: nuSQUIDS(e_nodes, numneu_, NT_, ihard_interactions), ihard_interactions(ihard_interactions) {
+    // activate gamma term always
+    Set_NonCoherentRhoTerms(true);
+    // do not allow the system to skip the numerics
+    Set_AllowConstantDensityOscillationOnlyEvolution(false);
 		// just allocate some matrices
 		DT_evol.resize(ne);
 		for (int ei = 0; ei < ne; ei++) {
@@ -581,13 +583,12 @@ public:
 	\param couplings_ is a gsl_matrix* pointer. See #couplings .
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
-					NeutrinoType NT_, bool iinteraction_,
+					NeutrinoType NT_, bool ihard_interactions_,
 					bool decay_regen_, bool pscalar_, 
 					std::vector<double> m_nu_, gsl_matrix* couplings_ 
 					):
-					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
-
-		iinteractions=iinteraction_;
+					nuSQUIDSDecay(e_nodes,numneu_,NT_,ihard_interactions_){
+		ihard_interactions=ihard_interactions_;
 		pscalar=pscalar_;
 		majorana=true;
 		Set_DecayRegeneration(decay_regen_);
@@ -629,14 +630,13 @@ public:
 	\param rate_matrices_ is a two-element array of gsl_matrix* pointers. See #rate_matrices .
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
-					NeutrinoType NT_, bool iinteraction_,
+					NeutrinoType NT_, bool ihard_interactions,
 					bool decay_regen_, bool pscalar_, 
 					bool majorana_, std::vector<double> m_nu_,
 					gsl_matrix* rate_matrices_[2]
 					):
-					nuSQUIDSDecay(e_nodes,numneu_,NT_,iinteraction_){
-
-		iinteractions=iinteraction_;
+					nuSQUIDSDecay(e_nodes,numneu_,NT_,ihard_interactions){
+		ihard_interactions=ihard_interactions;
 		pscalar=pscalar_;
 		majorana=majorana_;
 		/*
@@ -665,7 +665,7 @@ public:
 	*/
 	nuSQUIDSDecay(nuSQUIDSDecay&& other):
 	nuSQUIDS(std::move(other)),
-	iinteractions(other.iinteractions),
+	ihard_interactions(other.ihard_interactions),
 	pscalar(other.pscalar),	majorana(other.majorana), 
 	DT(other.DT), DT_evol(other.DT_evol), m_nu(other.m_nu)
 	{
@@ -710,7 +710,6 @@ public:
 	\param opt is the boolean value to toggle regeneration.
 	*/
 	void Set_DecayRegeneration(bool opt) { Set_OtherRhoTerms(opt); }
-
 }; // close nusquids class definition
 } // close nusquids namespace
 #endif // nusquids_decay_h
