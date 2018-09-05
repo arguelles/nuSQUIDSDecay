@@ -1,7 +1,7 @@
 # FLAGS
 CFLAGS= -O3 -fPIC -std=c++11
 CFLAGS+= -I./include `pkg-config --cflags squids nusquids hdf5`
-LDFLAGS+= `pkg-config --libs squids nusquids hdf5` -lpthread
+LDFLAGS+= `pkg-config --libs squids nusquids hdf5` -lhdf5_hl -lpthread
 
 all: examples/exCross.o  examples/partial_rate_example examples/couplings_example
 
