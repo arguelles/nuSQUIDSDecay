@@ -539,8 +539,8 @@ public:
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_ = 3,
 					NeutrinoType NT_ = NeutrinoType::both,
-					bool ihard_interactions = true)
-					: nuSQUIDS(e_nodes, numneu_, NT_, ihard_interactions), ihard_interactions(ihard_interactions) {
+					bool ihard_interactions = true, std::shared_ptr<NeutrinoCrossSections> ncs = nullptr)
+					: nuSQUIDS(e_nodes, numneu_, NT_, ihard_interactions, ncs), ihard_interactions(ihard_interactions) {
     // activate gamma term always
     Set_NonCoherentRhoTerms(true);
     // do not allow the system to skip the numerics
@@ -584,10 +584,11 @@ public:
 	*/
 	nuSQUIDSDecay(marray<double, 1> e_nodes, unsigned int numneu_,
 					NeutrinoType NT_, bool ihard_interactions_,
-					bool decay_regen_, bool pscalar_, 
-					std::vector<double> m_nu_, gsl_matrix* couplings_ 
+					bool decay_regen_, bool pscalar_,
+					std::vector<double> m_nu_, gsl_matrix* couplings_ ,
+          std::shared_ptr<NeutrinoCrossSections> ncs_ = nullptr
 					):
-					nuSQUIDSDecay(e_nodes,numneu_,NT_,ihard_interactions_){
+					nuSQUIDSDecay(e_nodes,numneu_,NT_,ihard_interactions_,ncs_){
 		ihard_interactions=ihard_interactions_;
 		pscalar=pscalar_;
 		majorana=true;
@@ -633,9 +634,10 @@ public:
 					NeutrinoType NT_, bool ihard_interactions,
 					bool decay_regen_, bool pscalar_, 
 					bool majorana_, std::vector<double> m_nu_,
-					gsl_matrix* rate_matrices_[2]
+					gsl_matrix* rate_matrices_[2],
+          std::shared_ptr<NeutrinoCrossSections> ncs_ = nullptr
 					):
-					nuSQUIDSDecay(e_nodes,numneu_,NT_,ihard_interactions){
+					nuSQUIDSDecay(e_nodes,numneu_,NT_,ihard_interactions,ncs_){
 		ihard_interactions=ihard_interactions;
 		pscalar=pscalar_;
 		majorana=majorana_;
